@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "es2021",
+    "module": "commonjs",
+    "declaration": true,
+    "outDir": "./dist",
+    "strict": true,
+    "rootDir": "src",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "sourceMap": true,
+    "composite": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "typeRoots": [
+      "node_modules/@types",
+      "../node_modules/@types"
+    ]
+  },
+  "include": [
+    "src/**/*",
+    "src/*/*.spec.ts"
+  ],
+  "exclude": ["node_modules", "dist"]
+}
