@@ -24,3 +24,5 @@ node_modules/
 **/dependency-check-report/
 
 **/tsconfig.tsbuildinfo
+
+docify/coverage/**
