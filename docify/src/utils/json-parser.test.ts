@@ -47,7 +47,6 @@ describe("jsonParser", () => {
         expect(() => parseArchitectureJson(invalidJson)).toThrow("Invalid JSON format");
     });
 
-
     it('should correctly parse valid JSON into Flow type', () => {
 
         const validJson = `

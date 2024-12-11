@@ -1,4 +1,4 @@
-export type NodeType = 'system' | 'actor' | 'web-client';  // Example of Node types
+export type NodeType = 'system' | 'actor' | 'web-client' | 'domain';  // Example of Node types
 export interface Node {
     'unique-id': string;
     'node-type': NodeType;
