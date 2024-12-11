@@ -1,0 +1,53 @@
+# {{name}}
+
+**Description**: {{description}}
+
+## Nodes
+
+| Name      | Node Type | Description | Data Classification | Run As | Instance |
+|-----------|-----------|-------------|---------------------|--------|----------|
+{{#each nodes}}
+| {{name}}  | {{node-type}} | {{description}} | {{data-classification}} | {{run-as}} | {{instance}} |
+{{/each}}
+
+## Relationships
+
+{{#each relationships}}
+{{#if relationship-type.interacts}}
+### Interacts
+
+| Actor    | Nodes                |
+|----------|----------------------|
+| {{relationship-type.interacts.actor}} | {{relationship-type.interacts.nodes}} |
+{{/if}}
+
+{{#if relationship-type.connects}}
+### Connects
+
+| Source Node  | Destination Node  |
+|--------------|-------------------|
+{{#each relationship-type.connects}}
+| {{source.node}} | {{destination.node}} |
+{{/each}}
+{{/if}}
+
+{{#if (getProperty relationship-type "deployed-in")}}
+### Deployed In
+
+| Container  | Nodes             |
+|------------|-------------------|
+{{#each (getProperty relationship-type "deployed-in")}}
+| {{container}} | {{nodes}} |
+{{/each}}
+{{/if}}
+
+{{#if (getProperty relationship-type "composed-of")}}
+### Composed Of
+
+| Container  | Nodes             |
+|------------|-------------------|
+{{#each (getProperty relationship-type "composed-of")}}
+| {{container}} | {{nodes}} |
+{{/each}}
+{{/if}}
+{{/each}}

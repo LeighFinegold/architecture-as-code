@@ -1,11 +1,15 @@
-import {Relationship, RelationshipType, ComposedOfType, InteractsType, DeployedInType, NodeInterface, ConnectsType} from "./Relationship";
-import {Node} from "./Node"
-export class Architecture {
+import {Relationship, RelationshipType, ComposedOfType, InteractsType, DeployedInType, NodeInterface, ConnectsType} from "./relationship";
+import {Node} from "./node"
 
+export class Architecture {
+    name: string;
+    description:string;
     nodes: Node[];
     relationships: Relationship[];
 
     constructor(data: any) {
+        this.name = data.name;
+        this.description = data.description;
         this.nodes = data.nodes.map((node: any) => ({
             'unique-id': node['unique-id'],
             'node-type': node['node-type'],
@@ -34,7 +38,7 @@ export class Architecture {
         } else if (type['composed-of']) {
             return { 'composed-of': this.parseComposedOfRelationship(type['composed-of']) };
         }
-        return {};
+        throw new Error("Unsupported RelationshipType")
     }
 
     private parseInteractRelationship(interacts: any): InteractsType {
@@ -55,4 +59,5 @@ export class Architecture {
     private parseComposedOfRelationship(composedOf: any): ComposedOfType {
         return { container: composedOf.container, nodes: composedOf.nodes };
     }
+
 }
