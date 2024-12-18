@@ -3,6 +3,7 @@ import {promises as fs} from 'fs';
 import {CalmException, FileNotFoundException, NotImplementedException} from "./models/exception";
 import {Failure, isSuccess, Success, Try} from "./models/try"
 import {generateMarkdownForArchitecture} from "./generators/sad-template-generator";
+import axios from "axios";
 
 export enum DocifyMode {
     OFFLINE = 'Offline',
@@ -92,14 +93,28 @@ export class Docify {
     }
 
     public async fetchDocumentFromCalmHub(docLink: string): Promise<Try<CalmDocument, CalmException>> {
-        return Failure(new NotImplementedException("CalmHub Not Yet Available"));
+        try {
+            // Make the web request to fetch the document
+            const response = await axios.get<CalmDocument>(docLink, {
+                headers: {
+                    'Accept': 'application/json',
+                },
+            });
+
+            // Check for successful response and return the document
+            if (response.status === 200 && response.data) {
+                return Success(response.data.toString());
+            } else {
+                // Handle unexpected status codes
+                return Failure(new CalmException(`Unexpected response status: ${response.status}`));
+            }
+        } catch (error: unknown) {
+            return Failure(new CalmException(`Failed to fetch document`));
+        }
     }
 
     public async resolveLinks(doc: CalmDocument): Promise<string[]> {
         const extractLinks = (data: any): string[] => {
-
-            const jsonDoc = JSON.parse(doc);
-
             let links: string[] = [];
 
             if (typeof data === 'string') {
@@ -122,6 +137,6 @@ export class Docify {
         };
         const allLinks = extractLinks(doc);
         // console.log(`Extracted links ${JSON.stringify(allLinks)}`)
-        return extractLinks(doc);
+        return allLinks;
     }
 }
