@@ -53,7 +53,7 @@ export class Docify {
         if (mode === DocifyMode.OFFLINE) {
             const mappedPath = this.urlFileMapping.get(docLink);
             const filePath = mappedPath || docLink;
-            console.log(`fetching ${filePath}`)
+            //console.log(`fetching ${filePath}`)
             doc = await this.readDocumentFromFile(filePath);
         } else {
             doc = await this.fetchDocumentFromCalmHub(docLink);
@@ -82,7 +82,7 @@ export class Docify {
 
     public async readDocumentFromFile(docLink: string): Promise<Try<CalmDocument, CalmException>> {
         try {
-            console.log(`Reading ${docLink}`);
+            // console.log(`Reading ${docLink}`);
             const docContent = await fs.readFile(docLink, 'utf-8');
             return Success(docContent);
         } catch (error) {
@@ -97,11 +97,14 @@ export class Docify {
 
     public async resolveLinks(doc: CalmDocument): Promise<string[]> {
         const extractLinks = (data: any): string[] => {
+
+            const jsonDoc = JSON.parse(doc);
+
             let links: string[] = [];
 
             if (typeof data === 'string') {
                 // Check if the string contains a URL (we'll use a simple regex for this)
-                const urlRegex = /(?<=["']|^)(https:\/\/\S+)(?=["']|$)/g;
+                const urlRegex = /(?<=["']|^)(https:\/\/(?!.*json-schema\.org)\S+)(?=["']|$)/g
                 const matches = data.match(urlRegex);
                 if (matches) {
                     // Add each match to the links array
@@ -118,7 +121,7 @@ export class Docify {
             return links;
         };
         const allLinks = extractLinks(doc);
-        console.log(`Extracted links ${JSON.stringify(allLinks)}`)
+        // console.log(`Extracted links ${JSON.stringify(allLinks)}`)
         return extractLinks(doc);
     }
 }
