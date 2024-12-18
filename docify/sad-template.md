@@ -17,14 +17,14 @@ TraderX CALM Architecture
 | Trading Services          | service   | Service which provides trading services                               | Confidential        | systemId |                  |
 | Trade Feed                | service   | Message bus for streaming updates to trades and positions             | Confidential        | systemId |                  |
 | Trade Processor           | service   | Process incoming trade requests, settle and persist                   | Confidential        | systemId |                  |
-| Accounts Service          | service   | Service which provides account management                             | Confidential        | systemId |                  |
+| Accounts Service          | service   | Service which provides account management                             | Confidential        | systemId |                  | 
 | People Service            | service   | Service which provides user details management                        | Confidential        | systemId |                  |
 | User Directory            | ldap      | Golden source of user data                                            | PII                 | systemId |                  |
 
 ## Relationships
 
 ### Interacts Relationship
- 
+
 | Unique Id                 | Description                   | Actor          | Nodes      |
 |---------------------------|-------------------------------|----------------|------------|
 | trader-executes-trades    | Executes Trades               | traderx-trader | web-client |
