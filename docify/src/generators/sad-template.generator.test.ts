@@ -1,5 +1,5 @@
-import { Architecture } from '../models/architecture'; // Import the Architecture class
-import { generateMarkdownForArchitecture } from './sad-template-generator'; // Import the generator function
+import {Architecture} from '../models/architecture'; // Import the Architecture class
+import {generateMarkdownForArchitecture} from './sad-template-generator'; // Import the generator function
 describe('Markdown Generator', () => {
     it('should generate the correct markdown for architecture', () => {
         const architecture = new Architecture({
@@ -39,8 +39,8 @@ describe('Markdown Generator', () => {
                     "description": "Connects database",
                     "relationship-type": {
                         "connects": {
-                            "source": { "node": "Node1" },
-                            "destination": { "node": "Node2" }
+                            "source": {"node": "Node1"},
+                            "destination": {"node": "Node2"}
                         }
                     }
                 },
@@ -66,10 +66,6 @@ describe('Markdown Generator', () => {
                 }
             ]
         });
-
-        console.log(JSON.stringify(architecture.relationships));
-
-
         const actualMarkdown = generateMarkdownForArchitecture(architecture);
 
         // Define the expected markdown string with complete node and relationship details
@@ -113,7 +109,7 @@ describe('Markdown Generator', () => {
 `.trim();
 
         // Normalize both generated and expected markdown by removing extra whitespaces
-        function normalizeMarkdown(markdown:string) {
+        function normalizeMarkdown(markdown: string) {
             markdown.replace(/\s+/g, ' ').trim();
         }
 
