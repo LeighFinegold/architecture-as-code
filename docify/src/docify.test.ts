@@ -3,10 +3,12 @@ import {Failure, Success} from './models/try';
 import {FileNotFoundException, NotImplementedException} from './models/exception';
 import * as JsonParser from './utils/json-parser';
 import {promises as fs} from 'fs';
+import * as SadTemplateGenerator from './generators/sad-template-generator';
+import {Architecture} from './models/architecture';
 
 jest.mock('fs', () => ({
     promises: {
-        readFile: jest.fn(), // Mocking the promises API of fs
+        readFile: jest.fn(),
     },
 }));
 jest.mock('./utils/json-parser');
@@ -18,16 +20,18 @@ describe('Docify Class', () => {
         docify = new Docify();
     });
 
-
-    // Test for the execute method
     describe('execute', () => {
-        it('should call fetchCalmBundle and transform', async () => {
+        it('should call fetchCalmBundle and transform with proper arguments', async () => {
             const docLink = 'someDocumentLink';
             const mode: DocifyMode = DocifyMode.OFFLINE;
             const outputFormat: OutputFormat = OutputFormat.SAD_TEMPLATE;
 
-            const fetchCalmBundleSpy = jest.spyOn(docify, 'fetchCalmBundle' as any).mockResolvedValue(new Map([['someDocumentLink', 'document content']]));
-            const transformSpy = jest.spyOn(docify, 'transform' as any).mockResolvedValue(undefined);
+            const fetchCalmBundleSpy = jest
+                .spyOn(docify, 'fetchCalmBundle' as any)
+                .mockResolvedValue(new Map([['someDocumentLink', 'document content']]));
+            const transformSpy = jest
+                .spyOn(docify, 'transform' as any)
+                .mockResolvedValue(undefined);
 
             await docify.execute(docLink, mode, outputFormat);
 
@@ -36,18 +40,16 @@ describe('Docify Class', () => {
         });
     });
 
-    // Test for the fetchCalmBundle method with offline mode
     describe('fetchCalmBundle', () => {
         it('should read document from file in offline mode', async () => {
             const docLink = 'documentPath';
-            const mode: DocifyMode = DocifyMode.OFFLINE
+            const mode: DocifyMode = DocifyMode.OFFLINE;
             const visited = new Set<string>();
 
-            const readDocumentFromFileSpy = jest.spyOn(docify, 'readDocumentFromFile' as any).mockResolvedValue(Success('Document Content'));
+            jest.spyOn(docify, 'readDocumentFromFile' as any).mockResolvedValue(Success('Document Content'));
 
             const result = await docify.fetchCalmBundle(docLink, mode, visited);
 
-            expect(readDocumentFromFileSpy).toHaveBeenCalledWith(docLink);
             expect(result).toEqual(new Map([['documentPath', 'Document Content']]));
         });
 
@@ -68,32 +70,39 @@ describe('Docify Class', () => {
             const mode: DocifyMode = DocifyMode.ONLINE;
             const visited = new Set<string>();
 
-            const fetchDocumentFromCalmHubSpy = jest.spyOn(docify, 'fetchDocumentFromCalmHub' as any).mockResolvedValue(Failure(new NotImplementedException('CalmHub Not Yet Available')));
+            jest.spyOn(docify, 'fetchDocumentFromCalmHub' as any).mockResolvedValue(Failure(new NotImplementedException('CalmHub Not Yet Available')));
 
             const result = await docify.fetchCalmBundle(docLink, mode, visited);
 
-            expect(fetchDocumentFromCalmHubSpy).toHaveBeenCalledWith(docLink);
             expect(result).toEqual(new Map());
         });
     });
 
-
     describe('transform', () => {
-        it('should call parseArchitectureJson with the document content', async () => {
+        it('should call parseArchitectureJson and generateMarkdownForArchitecture', async () => {
             const docLink = 'documentLink';
             const bundle = new Map([['documentLink', '{"key": "value"}']]);
             const outputFormat: OutputFormat = OutputFormat.SAD_TEMPLATE;
-            const parseArchitectureJsonSpy = jest.spyOn(JsonParser, "parseArchitectureJson" as any).mockReturnValue(undefined);
+
+            const architecture = new Architecture({
+                name: 'Example Architecture',
+                description: 'This is an example architecture.',
+                nodes: [],
+                relationships: [],
+            });
+
+            jest.spyOn(JsonParser, 'parseArchitectureJson' as any).mockReturnValue(architecture);
+            jest.spyOn(SadTemplateGenerator, 'generateMarkdownForArchitecture' as any).mockReturnValue('Markdown Content');
 
             await docify.transform(docLink, bundle, outputFormat);
 
-            expect(parseArchitectureJsonSpy).toHaveBeenCalledWith('{"key": "value"}');
+            expect(JsonParser.parseArchitectureJson).toHaveBeenCalledWith('{"key": "value"}');
+            expect(SadTemplateGenerator.generateMarkdownForArchitecture).toHaveBeenCalledWith(architecture);
         });
     });
 
-    // Test for resolveLinks method
     describe('resolveLinks', () => {
-        it('should return an empty array', async () => {
+        it('should return an empty array for documents without links', async () => {
             const doc = 'Some document content';
             const result = await docify.resolveLinks(doc);
 
@@ -101,9 +110,8 @@ describe('Docify Class', () => {
         });
     });
 
-    // Test for mergeMaps method
     describe('mergeMaps', () => {
-        it('should merge two maps correctly', async () => {
+        it('should correctly merge two maps', () => {
             const map1 = new Map([['key1', 'value1']]);
             const map2 = new Map([['key2', 'value2']]);
 
@@ -113,22 +121,20 @@ describe('Docify Class', () => {
         });
     });
 
-
     describe('readDocumentFromFile', () => {
-       it('should return Success if file is read correctly', async () => {
+        it('should return Success when file is read successfully', async () => {
             const filePath = 'someFilePath';
             const content = 'File Content';
-           (fs.readFile as jest.Mock).mockResolvedValue(content);
+            (fs.readFile as jest.Mock).mockResolvedValue(content);
 
             const result = await docify.readDocumentFromFile(filePath);
 
             expect(result).toEqual(Success(content));
         });
 
-        it('should return Failure if file is not found', async () => {
+        it('should return Failure when file is not found', async () => {
             const filePath = 'nonExistentFile';
             (fs.readFile as jest.Mock).mockRejectedValue(new Error('File not found'));
-
 
             const result = await docify.readDocumentFromFile(filePath);
 

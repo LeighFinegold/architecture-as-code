@@ -1,6 +1,6 @@
 # {{name}}
 
-**Description**: {{description}}
+{{description}}
 
 ## Nodes
 
@@ -12,42 +12,19 @@
 
 ## Relationships
 
-{{#each relationships}}
-{{#if relationship-type.interacts}}
-### Interacts
+### Interacts Relationship
 
-| Actor    | Nodes                |
-|----------|----------------------|
-| {{relationship-type.interacts.actor}} | {{relationship-type.interacts.nodes}} |
-{{/if}}
-
-{{#if relationship-type.connects}}
-### Connects
-
-| Source Node  | Destination Node  |
-|--------------|-------------------|
-{{#each relationship-type.connects}}
-| {{source.node}} | {{destination.node}} |
+| Unique Id | Description | Actor    | Nodes                |
+| ----------|----------|----------|----------------|
+{{#each (getInteractRelationships relationships)}}
+| {{unique-id}} | {{description}} | {{relationship-type.interacts.actor}} | {{relationship-type.interacts.nodes}} |
 {{/each}}
-{{/if}}
 
-{{#if (getProperty relationship-type "deployed-in")}}
-### Deployed In
+### Connect Relationships
 
-| Container  | Nodes             |
-|------------|-------------------|
-{{#each (getProperty relationship-type "deployed-in")}}
-| {{container}} | {{nodes}} |
+|Unique Id | Description | Source    | Destination                |
+| ----------|----------|----------|----------------|
+{{#each (getConnectRelationships relationships)}}
+| {{unique-id}} | {{description}} | {{relationship-type.connects.source.node}} | {{relationship-type.connects.destination.node}} |
 {{/each}}
-{{/if}}
 
-{{#if (getProperty relationship-type "composed-of")}}
-### Composed Of
-
-| Container  | Nodes             |
-|------------|-------------------|
-{{#each (getProperty relationship-type "composed-of")}}
-| {{container}} | {{nodes}} |
-{{/each}}
-{{/if}}
-{{/each}}

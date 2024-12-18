@@ -1,12 +1,14 @@
 import {parseArchitectureJson} from "./utils/json-parser";
-import { promises as fs } from 'fs';
+import {promises as fs} from 'fs';
 import {CalmException, FileNotFoundException, NotImplementedException} from "./models/exception";
 import {Failure, isSuccess, Success, Try} from "./models/try"
+import {generateMarkdownForArchitecture} from "./generators/sad-template-generator";
 
 export enum DocifyMode {
     OFFLINE = 'Offline',
-    ONLINE =  'Online'
+    ONLINE = 'Online'
 }
+
 export enum OutputFormat {
     SAD_TEMPLATE = 'SadTemplate'
 }
@@ -15,16 +17,24 @@ export type CalmDocument = string;
 
 export class Docify {
 
-    public async execute(docLink: string, mode: DocifyMode, outputFormat: OutputFormat ){
-        const bundle = await this.fetchCalmBundle(docLink, mode);
-        await this.transform(docLink, bundle, outputFormat);
+    private urlFileMapping: Map<string, string>;
+
+    constructor(urlFileMapping: Map<string, string> = new Map()) {
+        this.urlFileMapping = urlFileMapping;
     }
 
-    public async transform(docLink:string, bundle: Map<string, string>, outputFormat:OutputFormat) {
+    public async execute(docLink: string, mode: DocifyMode, outputFormat: OutputFormat) {
+        const bundle = await this.fetchCalmBundle(docLink, mode);
+        return await this.transform(docLink, bundle, outputFormat);
+    }
+
+    public async transform(docLink: string, bundle: Map<string, string>, outputFormat: OutputFormat) {
         const calmDocument = bundle.get(docLink);
-        if(calmDocument){
+        if (calmDocument) {
             const architecture = parseArchitectureJson(calmDocument);
-            console.log(architecture);
+            if (outputFormat == OutputFormat.SAD_TEMPLATE) {
+                return generateMarkdownForArchitecture(architecture);
+            }
         }
     }
 
@@ -35,16 +45,18 @@ export class Docify {
 
         visited.add(docLink);
 
-        let doc: Try<CalmDocument,CalmException>
+        let doc: Try<CalmDocument, CalmException>
 
         if (mode === DocifyMode.OFFLINE) {
-            doc = await this.readDocumentFromFile(docLink);
+            const mappedPath = this.urlFileMapping.get(docLink);
+            const filePath = mappedPath || docLink;
+            doc = await this.readDocumentFromFile(filePath);
         } else {
             doc = await this.fetchDocumentFromCalmHub(docLink);
         }
 
         const linkToDocumentMap = new Map<string, string>();
-        if(isSuccess(doc)){
+        if (isSuccess(doc)) {
             const links: string[] = await this.resolveLinks(doc.value);
 
             linkToDocumentMap.set(docLink, doc.value);
