@@ -4,7 +4,7 @@ import * as fs from "fs";
 import Handlebars from 'handlebars';
 import {Relationship} from "../models/relationship";
 
-export function generateMarkdownForArchitecture(architecture: Architecture): string {
+export function generateMarkdownForArchitecture(architecture: Architecture, bundle: Map<string, string>): string {
     const templatePath = path.join(__dirname, 'templates', 'sad-template.hbs');
     const template = fs.readFileSync(templatePath, 'utf-8');
     Handlebars.registerHelper('getProperty', function (obj, property) {
