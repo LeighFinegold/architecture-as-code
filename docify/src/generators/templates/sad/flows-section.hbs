@@ -1,0 +1,18 @@
+### {{name}}
+
+{{description}}
+
+```mermaid
+sequenceDiagram
+{{#each transitions}}
+    {{#if direction}}
+        {{#if (eq direction "destination-to-source")}}
+        {{getDestination relationship-unique-id}} -->> {{getSource relationship-unique-id}}: {{summary}}
+        {{else}}
+        {{getSource relationship-unique-id}} ->> {{getDestination relationship-unique-id}}: {{summary}}
+        {{/if}}
+    {{else}}
+        {{getSource relationship-unique-id}} ->> {{getDestination relationship-unique-id}}: {{summary}}
+    {{/if}}
+{{/each}}
+```mermaid

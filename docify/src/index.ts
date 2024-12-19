@@ -26,5 +26,7 @@ linksMap.set('https://calm.finos.org/traderx/flow/trade-processing-control-confi
 const docify = new Docify(linksMap);
 
 
-docify.execute("/Users/Leigh/IdeaProjects/architecture-as-code/calm/samples/2024-12/traderx/traderx.json", DocifyMode.OFFLINE, OutputFormat.SAD_TEMPLATE)
-    .then(mdOutput => fs.writeFileSync("./sad-template.md", mdOutput))
+docify.execute("/Users/Leigh/IdeaProjects/architecture-as-code/calm/samples/2024-12/traderx/traderx.json", DocifyMode.OFFLINE, OutputFormat.WEBSITE)
+    //.then(mdOutput => fs.writeFileSync("./sad-template.md", mdOutput))
+    //  .then(mdOutput => console.log(`FINAL OUTPUT = ${mdOutput}`));
+    .then(mdOutput => fs.writeFileSync("./mermaid-diagrams.md", mdOutput))

@@ -2,6 +2,8 @@
 
 {{description}}
 
+
+
 ## Nodes
 
 | Name      | Node Type | Description | Data Classification | Run As | Instance |
@@ -27,4 +29,7 @@
 {{#each (getConnectRelationships relationships)}}
 | {{unique-id}} | {{description}} | {{relationship-type.connects.source.node}} | {{relationship-type.connects.destination.node}} |
 {{/each}}
+
+
+
 

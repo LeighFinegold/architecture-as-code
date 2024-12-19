@@ -1,11 +1,21 @@
-import {Relationship, RelationshipType, ComposedOfType, InteractsType, DeployedInType, NodeInterface, ConnectsType} from "./relationship";
+import {
+    Relationship,
+    RelationshipType,
+    ComposedOfType,
+    InteractsType,
+    DeployedInType,
+    NodeInterface,
+    ConnectsType
+} from "./relationship";
 import {Node} from "./node"
+import {Flow} from "./flow";
 
 export class Architecture {
     name: string;
-    description:string;
+    description: string;
     nodes: Node[];
     relationships: Relationship[];
+    flows: String[];
 
     constructor(data: any) {
         this.name = data.name;
@@ -26,38 +36,40 @@ export class Architecture {
             'relationship-type': this.parseRelationshipType(relationship['relationship-type']),
             protocol: relationship.protocol,
         }));
+
+        this.flows = data.flows
     }
 
     private parseRelationshipType(type: any): RelationshipType {
         if (type.interacts) {
-            return { interacts: this.parseInteractRelationship(type.interacts) };
+            return {interacts: this.parseInteractRelationship(type.interacts)};
         } else if (type.connects) {
-            return { connects: this.parseConnectRelationship(type.connects) };
+            return {connects: this.parseConnectRelationship(type.connects)};
         } else if (type['deployed-in']) {
-            return { 'deployed-in': this.parseDeployedInRelationship(type['deployed-in']) };
+            return {'deployed-in': this.parseDeployedInRelationship(type['deployed-in'])};
         } else if (type['composed-of']) {
-            return { 'composed-of': this.parseComposedOfRelationship(type['composed-of']) };
+            return {'composed-of': this.parseComposedOfRelationship(type['composed-of'])};
         }
         throw new Error("Unsupported RelationshipType")
     }
 
     private parseInteractRelationship(interacts: any): InteractsType {
-        return { actor: interacts.actor, nodes: interacts.nodes };
+        return {actor: interacts.actor, nodes: interacts.nodes};
     }
 
     private parseConnectRelationship(connects: any): ConnectsType {
         return {
-            source: { node: connects.source.node },
-            destination: { node: connects.destination.node },
+            source: {node: connects.source.node},
+            destination: {node: connects.destination.node},
         };
     }
 
     private parseDeployedInRelationship(deployedIn: any): DeployedInType {
-        return { container: deployedIn.container, nodes: deployedIn.nodes };
+        return {container: deployedIn.container, nodes: deployedIn.nodes};
     }
 
     private parseComposedOfRelationship(composedOf: any): ComposedOfType {
-        return { container: composedOf.container, nodes: composedOf.nodes };
+        return {container: composedOf.container, nodes: composedOf.nodes};
     }
 
 }

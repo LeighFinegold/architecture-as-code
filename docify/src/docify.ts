@@ -3,6 +3,7 @@ import {promises as fs} from 'fs';
 import {CalmException, FileNotFoundException, NotImplementedException} from "./models/exception";
 import {Failure, isSuccess, Success, Try} from "./models/try"
 import {generateMarkdownForArchitecture} from "./generators/sad-template-generator";
+import {generateMarkdown} from "./generators/website-generator";
 import axios from "axios";
 
 export enum DocifyMode {
@@ -11,7 +12,8 @@ export enum DocifyMode {
 }
 
 export enum OutputFormat {
-    SAD_TEMPLATE = 'SadTemplate'
+    SAD_TEMPLATE = 'SadTemplate',
+    WEBSITE = 'Website'
 }
 
 export type CalmDocument = string;
@@ -37,7 +39,9 @@ export class Docify {
             const architecture = parseArchitectureJson(calmDocument);
             if (outputFormat === OutputFormat.SAD_TEMPLATE) {
                 console.log("Generating Markdown");
-                return generateMarkdownForArchitecture(architecture);
+                return generateMarkdownForArchitecture(architecture, bundle);
+            } else {
+                return generateMarkdown(architecture, bundle);
             }
         }
     }
