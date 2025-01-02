@@ -66,7 +66,7 @@ describe('Markdown Generator', () => {
                 }
             ]
         });
-        const actualMarkdown = generateMarkdownForArchitecture(architecture);
+        const actualMarkdown = generateMarkdownForArchitecture(architecture, new Map<string, string>());
 
         // Define the expected markdown string with complete node and relationship details
         const expectedMarkdown = `

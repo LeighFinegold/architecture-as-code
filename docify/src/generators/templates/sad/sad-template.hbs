@@ -1,35 +1,21 @@
 # {{name}}
-
 {{description}}
 
+## Architecture
+{{> architecture }}
 
+## Flows
+{{#each flows}}
+{{#with (getFlow this) }}
+{{> flow}}
+{{/with}}
+{{/each}}
 
 ## Nodes
+{{> nodes}}
 
-| Name      | Node Type | Description | Data Classification | Run As | Instance |
-|-----------|-----------|-------------|---------------------|--------|----------|
-{{#each nodes}}
-| {{name}}  | {{node-type}} | {{description}} | {{data-classification}} | {{run-as}} | {{instance}} |
-{{/each}}
 
 ## Relationships
-
-### Interacts Relationship
-
-| Unique Id | Description | Actor    | Nodes                |
-| ----------|----------|----------|----------------|
-{{#each (getInteractRelationships relationships)}}
-| {{unique-id}} | {{description}} | {{relationship-type.interacts.actor}} | {{relationship-type.interacts.nodes}} |
-{{/each}}
-
-### Connect Relationships
-
-|Unique Id | Description | Source    | Destination                |
-| ----------|----------|----------|----------------|
-{{#each (getConnectRelationships relationships)}}
-| {{unique-id}} | {{description}} | {{relationship-type.connects.source.node}} | {{relationship-type.connects.destination.node}} |
-{{/each}}
-
-
+{{> relationships}}
 
 
