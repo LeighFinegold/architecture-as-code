@@ -46,7 +46,7 @@ export function generateMarkdown(architecture: Architecture, bundle: Map<String,
     });
 
 
-    const mermaidSequenceDiagram = path.join(__dirname, 'templates', 'mermaid-sequence.hbs');
+    const mermaidSequenceDiagram = path.join(__dirname, 'templates', 'flows.hbs');
     const templateContent = fs.readFileSync(mermaidSequenceDiagram, 'utf-8');
 
 
