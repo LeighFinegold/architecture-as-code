@@ -4,7 +4,8 @@
   "description": "CALM docify",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc",
+    "copy-templates": "mkdir -p dist/generators/templates && cp -r src/generators/templates/sad dist/generators/templates",
+    "build": "npm run copy-templates && tsc",
     "test": "jest"
   },
   "keywords": [
