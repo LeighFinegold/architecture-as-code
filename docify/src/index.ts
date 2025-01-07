@@ -28,5 +28,6 @@ const docify = new Docify(linksMap);
 
 docify.execute("/app/calm/samples/2024-12/traderx/traderx.json", DocifyMode.OFFLINE, OutputFormat.SAD_TEMPLATE)
     .then(mdOutput => fs.writeFileSync("./traderx-sad.md", mdOutput))
+
 //  .then(mdOutput => console.log(`FINAL OUTPUT = ${mdOutput}`));
 //.then(mdOutput => fs.writeFileSync("./mermaid-diagrams.md", mdOutput))

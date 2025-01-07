@@ -10,7 +10,7 @@ export function generateMarkdownForArchitecture(architecture: Architecture, bund
     const flowTemplatePath = path.join(__dirname, 'templates', 'flow.hbs');
     const nodeTemplatePath = path.join(__dirname, 'templates', 'nodes.hbs');
     const architectureTemplatePath = path.join(__dirname, 'templates', 'architecture.hbs');
-    const relationshipsTemplatePath = path.join(__dirname, 'templates', 'nodes.hbs');
+    const relationshipsTemplatePath = path.join(__dirname, 'templates', 'relationships.hbs');
     const sadTemplate = fs.readFileSync(sadTemplatePath, 'utf-8');
     const flowTemplate = fs.readFileSync(flowTemplatePath, 'utf-8');
     const nodesTemplate = fs.readFileSync(nodeTemplatePath, 'utf-8');
@@ -23,23 +23,34 @@ export function generateMarkdownForArchitecture(architecture: Architecture, bund
     Handlebars.registerPartial('architecture', architectureTemplate);
 
     const flows = architecture.flows.map(flowDoc => {
-        return JSON.parse(bundle.get(flowDoc)) as Flow
+        return JSON.parse(bundle.get(flowDoc) || '{}') as Flow
     })
     const relationshipMap: Record<string, { source: string; destination: string }> = {};
 
 
-    flows.forEach(flow => {
+    flows.forEach((flow) => {
+        flow.transitions.forEach((transition) => {
+            // Filter relationships with valid "connects" objects
+            const relationships = architecture.relationships.filter(
+                (r) => r["relationship-type"]?.connects
+            );
 
-        flow.transitions.forEach(transition => {
-            // Assuming metadata contains the relationship source/destination
-            const relationships = architecture.relationships.filter(r => r["relationship-type"]["connects"]);
-            const relationship = relationships.find(rel => rel["unique-id"] === transition["relationship-unique-id"]);
+            // Find the relationship matching the unique ID
+            const relationship = relationships.find(
+                (rel) => rel["unique-id"] === transition["relationship-unique-id"]
+            );
 
             if (relationship) {
+                // Safely access source and destination nodes
                 relationshipMap[transition["relationship-unique-id"]] = {
-                    source: relationship["relationship-type"].connects.source.node,
-                    destination: relationship["relationship-type"].connects.destination.node,
+                    source: relationship["relationship-type"]?.connects?.source?.node || "unknown",
+                    destination: relationship["relationship-type"]?.connects?.destination?.node ||  "unknown",
                 };
+            } else {
+                // Log warning if no matching relationship is found
+                console.warn(
+                    `No relationship found for unique ID: ${transition["relationship-unique-id"]}`
+                );
             }
         });
     });
@@ -50,7 +61,7 @@ export function generateMarkdownForArchitecture(architecture: Architecture, bund
     });
 
     Handlebars.registerHelper('getFlow', function (flowPath: string) {
-        return JSON.parse(bundle.get(flowPath));
+        return JSON.parse(bundle.get(flowPath) || '{}');
     });
 
     Handlebars.registerHelper('getInteractRelationships', function (relationships: Relationship[]) {

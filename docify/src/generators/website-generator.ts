@@ -6,29 +6,37 @@ import {Relationship} from "../models/relationship";
 import {Flow} from "../models/flow";
 
 
-export function generateMarkdown(architecture: Architecture, bundle: Map<String, String>): string {
+export function generateMarkdown(architecture: Architecture, bundle: Map<string, string> = new Map<string,string>()): string {
     const flowDocs = architecture.flows;
     const flows = flowDocs.map(flowDoc => {
-        return JSON.parse(bundle.get(flowDoc)) as Flow
+        return JSON.parse(bundle.get(flowDoc) || '{}') as Flow
     })
     const relationshipMap: Record<string, { source: string; destination: string }> = {};
 
 
-    flows.forEach(flow => {
+    flows.forEach((flow) => {
+        flow.transitions.forEach((transition) => {
+            const relationships = architecture.relationships.filter(
+                (r) => r["relationship-type"]?.connects
+            );
 
-        flow.transitions.forEach(transition => {
-            // Assuming metadata contains the relationship source/destination
-            const relationships = architecture.relationships.filter(r => r["relationship-type"]["connects"]);
-            const relationship = relationships.find(rel => rel["unique-id"] === transition["relationship-unique-id"]);
+            const relationship = relationships.find(
+                (rel) => rel["unique-id"] === transition["relationship-unique-id"]
+            );
 
             if (relationship) {
                 relationshipMap[transition["relationship-unique-id"]] = {
-                    source: relationship["relationship-type"].connects.source.node,
-                    destination: relationship["relationship-type"].connects.destination.node,
+                    source: relationship["relationship-type"]?.connects?.source?.node || "unknown",
+                    destination: relationship["relationship-type"]?.connects?.destination?.node || "unknown",
                 };
+            } else {
+                console.warn(
+                    `No relationship found for unique ID: ${transition["relationship-unique-id"]}`
+                );
             }
         });
     });
+
 
     // Register helpers
     Handlebars.registerHelper("getSource", function (relationshipId: string): string {

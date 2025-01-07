@@ -3,42 +3,43 @@ TraderX CALM Architecture
 
 ## Architecture
 ```mermaid
-    C4Container
-    title Container diagram for Internet Banking System
+C4Container
+title Container diagram for TraderX
+        Person(traderx-trader, "Trader", "Person who manages accounts and executes trades")
+        Container(web-client, "Web Client", "", "Browser based web interface for TraderX")
+            Container(web-gui-process, "Web GUI", "", "Allows employees to manage accounts and book trades")
+            Container(position-service, "Position Service", "", "Server process which processes trading activity and updates positions")
+            ContainerDb(traderx-db, "TraderX DB", "", "Database which stores account, trade and position state")
+        Container(internal-bank-network, "Bank ABC Internal Network", "", "Internal network for Bank ABC")
+            Container(reference-data-service, "Reference Data Service", "", "Service which provides reference data")
+            Container(trading-services, "Trading Services", "", "Service which provides trading services")
+            Container(trade-feed, "Trade Feed", "", "Message bus for streaming updates to trades and positions")
+            Container(trade-processor, "Trade Processor", "", "Process incoming trade requests, settle and persist")
+            Container(accounts-service, "Accounts Service", "", "Service which provides account management")
+            Container(people-service, "People Service", "", "Service which provides user details management")
+            Container(user-directory, "User Directory", "", "Golden source of user data")
+    
+    Rel(web-client, web-gui-process, "Web client interacts with the Web GUI process.")
+    Rel(web-gui-process, position-service, "Load positions for account.")
+    Rel(web-gui-process, position-service, "Load trades for account.")
+    Rel(position-service, traderx-db, "Looks up default positions for a given account.")
+    Rel(position-service, traderx-db, "Looks up all trades for a given account.")
+    Rel(web-gui-process, reference-data-service, "Looks up securities to assist with creating a trade ticket.")
+    Rel(web-gui-process, trading-services, "Creates new trades and cancels existing trades.")
+    Rel(web-gui-process, trade-feed, "Subscribes to trade/position updates feed for currently viewed account.")
+    Rel(trade-processor, trade-feed, "Processes incoming trade requests, persist and publish updates.")
+    Rel(trade-processor, traderx-db, "Looks up current positions when bootstrapping state, persist trade state and position state.")
+    Rel(web-gui-process, accounts-service, "Creates/Updates accounts. Gets list of accounts.")
+    Rel(web-gui-process, people-service, "Looks up people data based on typeahead from GUI.")
+    Rel(people-service, user-directory, "Looks up people data.")
+    Rel(trading-services, reference-data-service, "Validates securities when creating trades.")
+    Rel(trading-services, trade-feed, "Publishes updates to trades and positions after persisting in the DB.")
+    Rel(trading-services, accounts-service, "Validates accounts when creating trades.")
+    Rel(accounts-service, traderx-db, "CRUD operations on account")
+    Rel(traderx-trader, web-client, "Executes Trades")
+    Rel(traderx-trader, web-client, "Manage Accounts")
+    Rel(traderx-trader, web-client, "View Trade Status / Positions")
 
-    System_Ext(email_system, "E-Mail System", "The internal Microsoft Exchange system", $tags="v1.0")
-    Person(customer, Customer, "A customer of the bank, with personal bank accounts", $tags="v1.0")
-
-    Container_Boundary(c1, "Internet Banking") {
-        Container(spa, "Single-Page App", "JavaScript, Angular", "Provides all the Internet banking functionality to customers via their web browser")
-        Container_Ext(mobile_app, "Mobile App", "C#, Xamarin", "Provides a limited subset of the Internet banking functionality to customers via their mobile device")
-        Container(web_app, "Web Application", "Java, Spring MVC", "Delivers the static content and the Internet banking SPA")
-        ContainerDb(database, "Database", "SQL Database", "Stores user registration information, hashed auth credentials, access logs, etc.")
-        ContainerDb_Ext(backend_api, "API Application", "Java, Docker Container", "Provides Internet banking functionality via API")
-
-    }
-
-    System_Ext(banking_system, "Mainframe Banking System", "Stores all of the core banking information about customers, accounts, transactions, etc.")
-
-    Rel(customer, web_app, "Uses", "HTTPS")
-    UpdateRelStyle(customer, web_app, $offsetY="60", $offsetX="90")
-    Rel(customer, spa, "Uses", "HTTPS")
-    UpdateRelStyle(customer, spa, $offsetY="-40")
-    Rel(customer, mobile_app, "Uses")
-    UpdateRelStyle(customer, mobile_app, $offsetY="-30")
-
-    Rel(web_app, spa, "Delivers")
-    UpdateRelStyle(web_app, spa, $offsetX="130")
-    Rel(spa, backend_api, "Uses", "async, JSON/HTTPS")
-    Rel(mobile_app, backend_api, "Uses", "async, JSON/HTTPS")
-    Rel_Back(database, backend_api, "Reads from and writes to", "sync, JDBC")
-
-    Rel(email_system, customer, "Sends e-mails to")
-    UpdateRelStyle(email_system, customer, $offsetX="-45")
-    Rel(backend_api, email_system, "Sends e-mails using", "sync, SMTP")
-    UpdateRelStyle(backend_api, email_system, $offsetY="-60")
-    Rel(backend_api, banking_system, "Uses", "sync/async, XML/HTTPS")
-    UpdateRelStyle(backend_api, banking_system, $offsetY="-50", $offsetX="-140")
 ```
 
 ## Flows
@@ -137,21 +138,37 @@ sequenceDiagram
 
 
 ## Relationships
-| Name      | Node Type | Description | Data Classification | Run As | Instance |
-|-----------|-----------|-------------|---------------------|--------|----------|
-| TraderX  | system | Simple Trading System |  |  |  |
-| Trader  | actor | Person who manages accounts and executes trades |  |  |  |
-| Web Client  | webclient | Browser based web interface for TraderX | Confidential | user |  |
-| Web GUI  | service | Allows employees to manage accounts and book trades | Confidential | systemId |  |
-| Position Service  | service | Server process which processes trading activity and updates positions | Confidential | systemId |  |
-| TraderX DB  | database | Database which stores account, trade and position state | Confidential | systemId |  |
-| Bank ABC Internal Network  | network | Internal network for Bank ABC |  |  | Internal Network |
-| Reference Data Service  | service | Service which provides reference data | Confidential | systemId |  |
-| Trading Services  | service | Service which provides trading services | Confidential | systemId |  |
-| Trade Feed  | service | Message bus for streaming updates to trades and positions | Confidential | systemId |  |
-| Trade Processor  | service | Process incoming trade requests, settle and persist | Confidential | systemId |  |
-| Accounts Service  | service | Service which provides account management | Confidential | systemId |  |
-| People Service  | service | Service which provides user details management | Confidential | systemId |  |
-| User Directory  | ldap | Golden source of user data | PII | systemId |  |
+### Interacts Relationship
+
+| Unique Id | Description | Actor    | Nodes                |
+| ----------|----------|----------|----------------|
+| trader-executes-trades | Executes Trades | traderx-trader | web-client |
+| trader-manages-accounts | Manage Accounts | traderx-trader | web-client |
+| trader-views-trade-status | View Trade Status / Positions | traderx-trader | web-client |
+
+### Connect Relationships
+
+|Unique Id | Description | Source    | Destination                |
+| ----------|----------|----------|----------------|
+| web-client-uses-web-gui | Web client interacts with the Web GUI process. | web-client | web-gui-process |
+| web-gui-uses-position-service-for-position-queries | Load positions for account. | web-gui-process | position-service |
+| web-gui-uses-position-service-for-trade-queries | Load trades for account. | web-gui-process | position-service |
+| position-service-uses-traderx-db-for-positions | Looks up default positions for a given account. | position-service | traderx-db |
+| position-service-uses-traderx-db-for-trades | Looks up all trades for a given account. | position-service | traderx-db |
+| web-gui-process-uses-reference-data-service | Looks up securities to assist with creating a trade ticket. | web-gui-process | reference-data-service |
+| web-gui-process-uses-trading-services | Creates new trades and cancels existing trades. | web-gui-process | trading-services |
+| web-gui-process-uses-trade-feed | Subscribes to trade/position updates feed for currently viewed account. | web-gui-process | trade-feed |
+| trade-processor-connects-to-trade-feed | Processes incoming trade requests, persist and publish updates. | trade-processor | trade-feed |
+| trade-processor-connects-to-traderx-db | Looks up current positions when bootstrapping state, persist trade state and position state. | trade-processor | traderx-db |
+| web-gui-process-uses-accounts-service | Creates/Updates accounts. Gets list of accounts. | web-gui-process | accounts-service |
+| web-gui-process-uses-people-service | Looks up people data based on typeahead from GUI. | web-gui-process | people-service |
+| people-service-connects-to-user-directory | Looks up people data. | people-service | user-directory |
+| trading-services-connects-to-reference-data-service | Validates securities when creating trades. | trading-services | reference-data-service |
+| trading-services-uses-trade-feed | Publishes updates to trades and positions after persisting in the DB. | trading-services | trade-feed |
+| trading-services-uses-account-service | Validates accounts when creating trades. | trading-services | accounts-service |
+| accounts-service-uses-traderx-db-for-accounts | CRUD operations on account | accounts-service | traderx-db |
+
+
+
 
 

@@ -15,7 +15,7 @@ export class Architecture {
     description: string;
     nodes: Node[];
     relationships: Relationship[];
-    flows: String[];
+    flows: string[];
 
     constructor(data: any) {
         this.name = data.name;

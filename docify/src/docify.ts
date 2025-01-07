@@ -31,7 +31,7 @@ export class Docify {
         return await this.transform(docLink, bundle, outputFormat);
     }
 
-    public async transform(docLink: string, bundle: Map<string, string>, outputFormat: OutputFormat) {
+    public async transform(docLink: string, bundle: Map<string, string>, outputFormat: OutputFormat): Promise<string> {
         console.log(`Transforming ${docLink} to output of type ${outputFormat}`)
 
         const calmDocument = bundle.get(docLink);
@@ -43,6 +43,8 @@ export class Docify {
             } else {
                 return generateMarkdown(architecture, bundle);
             }
+        }else{
+            return "{}"
         }
     }
 
