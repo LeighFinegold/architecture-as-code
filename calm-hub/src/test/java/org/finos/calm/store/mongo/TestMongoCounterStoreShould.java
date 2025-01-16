@@ -43,6 +43,6 @@ public class TestMongoCounterStoreShould {
         when(counterCollection.findOneAndUpdate(any(Document.class), any(Document.class),
                 any(FindOneAndUpdateOptions.class))).thenReturn(document);
 
-        assertThat(counterStore.getNextSequenceValue(), equalTo(42));
+        assertThat(counterStore.getNextPatternSequenceValue(), equalTo(42));
     }
 }
