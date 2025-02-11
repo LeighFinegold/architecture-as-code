@@ -12,7 +12,8 @@
         "sourceMap": true,
         "composite": true,
         "skipLibCheck": true,
-        "forceConsistentCasingInFileNames": true,
+        "useDefineForClassFields": false,
+        "experimentalDecorators": true,
         "typeRoots": [
             "node_modules/@types",
             "../node_modules/@types"
