@@ -2,6 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://calm.finos.org/draft/2025-01/meta/core.json",
   "title": "Common Architecture Language Model (CALM) Vocab",
+  "type": "object",
   "properties": {
     "nodes": {
       "type": "array",
@@ -84,7 +85,7 @@
         "name",
         "description"
       ],
-      "additionalProperties": true
+      "additionalProperties": false
     },
     "relationship": {
       "type": "object",
@@ -151,7 +152,7 @@
         "unique-id",
         "relationship-type"
       ],
-      "additionalProperties": true
+      "additionalProperties": false
     },
     "data-classification": {
       "enum": [

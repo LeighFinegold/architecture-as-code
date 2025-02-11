@@ -31,8 +31,7 @@
           "sequence-number",
           "summary"
         ]
-      },
-      "minItems": 1
+      }
     },
     "metadata": {
       "type": "array",
@@ -62,11 +61,9 @@
         "transitions": {
           "type": "array",
           "items": {
-            "$ref": "#/defs/transition"
+            "$ref": "#/defs/transition",
+            "minItems": 1
           }
-        },
-        "controls": {
-          "$ref": "control.json#/defs/controls"
         },
         "metadata": {
           "$ref": "#/defs/metadata"
