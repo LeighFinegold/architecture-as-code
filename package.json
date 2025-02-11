@@ -9,6 +9,7 @@
     "calm-visualizer"
   ],
   "scripts": {
+    "generate:zod": "ts-node scripts/generateZod.ts",
     "build": "npm run build --workspaces --if-present",
     "build:cli": "npm run build --workspace shared --workspace cli",
     "build:docs": "npm run build --workspace docs",
@@ -26,5 +27,11 @@
     "link": "^2.1.1",
     "npm-run-all2": "^5.0.0",
     "vitest": "^2.1.8"
+  },
+  "dependencies": {
+    "json-schema-ref-parser": "^9.0.9",
+    "json-schema-to-zod": "^2.6.0",
+    "prettier": "^3.5.0",
+    "zod": "^3.24.1"
   }
 }
