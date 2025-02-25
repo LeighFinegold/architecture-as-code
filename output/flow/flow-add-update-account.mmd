@@ -1,0 +1,5 @@
+sequenceDiagram
+title Add or Update Account
+    web-gui-process ->> accounts-service: Submit Account Create/Update
+    accounts-service ->> traderx-db-for-accounts: inserts or updates account
+    accounts-service -->> web-gui-process: Returns Account Create/Update Response Status

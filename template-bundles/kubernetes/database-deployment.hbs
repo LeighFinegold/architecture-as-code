@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{name}}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      db: {{name}}
+  template:
+    metadata:
+      labels:
+        db: {{name}}
+    spec:
+      containers:
+        {{#each containers}}
+        - name: {{this.name}}
+          image: {{this.image}}
+          ports:
+            {{#each this.ports}}
+            - containerPort: {{this}}
+            {{/each}}
+          env:
+            {{#each ../metadata}}
+                - name: {{ @key }}
+                  value: "{{ this }}"
+            {{/each}}
+        {{/each}}

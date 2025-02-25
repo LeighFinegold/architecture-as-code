@@ -1,0 +1,12 @@
+{
+  "name": "flow-visualizer",
+  "transformer": "flow-transformer",
+  "templates": [
+    {
+      "template": "flow-sequence-diagram.hbs",
+      "from": "flow",
+      "output": "{{id}}.mmd",
+      "output-type": "single"
+    }
+  ]
+}
