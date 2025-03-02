@@ -1,0 +1,433 @@
+{
+  "$schema": "https://calm.finos.org/draft/2025-03/pattern/rag-pattern.json",
+  "$id": "https://calm.finos.org/draft/2025-03/implementation/rag-implementation.json",
+  "title": "RAG Knowledge Base & Inference Architecture Implementation",
+  "type": "object",
+  "properties": {
+    "nodes": [
+      {
+        "unique-id": "user",
+        "name": "User Actor",
+        "description": "Represents an end-user interacting with the system.",
+        "node-type": "actor"
+      },
+      {
+        "unique-id": "saas-environment",
+        "name": "Production SaaS Inference",
+        "description": "The deployed cloud-based inference environment.",
+        "node-type": "system"
+      },
+      {
+        "unique-id": "ai-model",
+        "name": "Deployed AI Model",
+        "description": "The AI model that performs inference.",
+        "node-type": "service",
+        "interfaces": [
+          {
+            "unique-id": "embeddings-endpoint",
+            "name": "Embeddings Endpoint",
+            "description": "Provides embeddings from an inference environment."
+          },
+          {
+            "unique-id": "inference-endpoint",
+            "name": "Inference Endpoint",
+            "description": "Handles inference requests and responses."
+          }
+        ],
+        "features": [
+          {
+            "id": "CCC.GenAI.F01",
+            "title": "Text-Based Model Selection",
+            "description": "Ability to select a foundation model that excels at natural language understanding and generation tasks such as summarization, translation, text generation, question answering, and sentiment analysis."
+          },
+          {
+            "id": "CCC.GenAI.F11",
+            "title": "Parameter Tuning - Stop Sequences",
+            "description": "Ability to halt generation when a predefined sequence is encountered."
+          }
+        ]
+      },
+      {
+        "unique-id": "onprem-environment",
+        "name": "On-Prem Data Processing Environment",
+        "description": "The internal on-premise processing environment.",
+        "node-type": "system"
+      },
+      {
+        "unique-id": "private-knowledge-source",
+        "name": "Private Knowledge Data Source",
+        "description": "Source of knowledge used for embeddings.",
+        "node-type": "database",
+        "features": [
+          {
+            "id": "CCC.RDMS.F01",
+            "title": "SQL Support",
+            "description": "Properly handle queries in the SQL language."
+          },
+          {
+            "id": "CCC.RDMS.F11",
+            "title": "Disable Public Access",
+            "description": "Prevent database from being accessed by public internet."
+          }
+        ],
+        "threats": [
+          {
+            "id": "CCC.RDMS.TH09",
+            "title": "Unvalidated User Input Leading to SQL Injection",
+            "description": "Improper validation of user input could allow attackers to inject malicious SQL queries into database queries. This condition could lead to unauthorized data access, manipulation, or deletion of critical information.",
+            "features": [
+              "CCC.RDMS.F01"
+            ],
+            "mitre_technique": [
+              "T1190",
+              "T1071.001"
+            ]
+          },
+          {
+            "id": "CCC.RDMS.TH10",
+            "title": "Publicly Exposed Database Accessible Without Restriction",
+            "description": "A relational database may be accidentally or improperly configured to allow public internet access. This condition could lead to unauthorized access, data breaches, or unintended information disclosure.",
+            "features": [
+              "CCC.RDMS.F11",
+              "CCC.F23"
+            ],
+            "mitre_technique": [
+              "T1133",
+              "T1046"
+            ]
+          },
+          {
+            "id": "CCC.RDMS.TH11",
+            "title": "Weak Role-Based Access Control in SQL Permissions",
+            "description": "Weakly enforced role-based access control (RBAC) settings could allow unauthorized privilege escalation within a relational database. This condition may enable low-privileged users to perform administrative actions, altering database structures or retrieving sensitive data.",
+            "features": [
+              "CCC.RDMS.F01",
+              "CCC.F06",
+              "CCC.F13"
+            ],
+            "mitre_technique": [
+              "T1548",
+              "T1078.003"
+            ]
+          },
+          {
+            "id": "CCC.RDMS.TH12",
+            "title": "Database Snapshots Available for Public Download",
+            "description": "Database snapshots could be incorrectly configured to allow public download, exposing sensitive records and proprietary information to unauthorized entities.",
+            "features": [
+              "CCC.RDMS.F11",
+              "CCC.F11",
+              "CCC.F12"
+            ],
+            "mitre_technique": [
+              "T1530",
+              "T1083"
+            ]
+          }
+        ],
+        "controls": [
+          {
+            "id": "CCC.RDMS.C01",
+            "description": "Ensure default credentials are disabled for database access.",
+            "requirements": [
+              {
+                "control-requirement-url": "https://github.com/finos/common-cloud-controls/blob/main/schemas/controls-schema.json#/properties/controls/items/CCC.RDMS.C02"
+              }
+            ]
+          },
+          {
+            "id": "CCC.RDMS.C02",
+            "description": "Limit snapshot collection capabilities to trusted roles.",
+            "requirements": [
+              {
+                "control-requirement-url": "https://github.com/finos/common-cloud-controls/blob/main/schemas/controls-schema.json#/properties/controls/items/CCC.RDMS.C03"
+              }
+            ]
+          },
+          {
+            "id": "CCC.RDMS.C03",
+            "description": "Ensure snapshots are only shared with explicitly authorized accounts to limit data exposure and reduce data exfiltration.",
+            "requirements": [
+              {
+                "control-requirement-url": "https://github.com/finos/common-cloud-controls/blob/main/schemas/controls-schema.json#/properties/controls/items/CCC.RDMS.C05"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "unique-id": "data-processor",
+        "name": "Knowledge Data Processor",
+        "description": "Processes and filters knowledge for refinement.",
+        "node-type": "service"
+      },
+      {
+        "unique-id": "refined-knowledge-database",
+        "name": "Refined Knowledge Database",
+        "description": "Stores processed and structured knowledge before vectorization.",
+        "node-type": "database"
+      },
+      {
+        "unique-id": "vector-data-loader",
+        "name": "Vector Data Loader",
+        "description": "Loads refined knowledge into the vector database.",
+        "node-type": "service"
+      },
+      {
+        "unique-id": "vector-database",
+        "name": "Vector Database",
+        "description": "Stores vectorized knowledge.",
+        "node-type": "database"
+      },
+      {
+        "unique-id": "query-processor",
+        "name": "Query Processing Service",
+        "description": "Processes user queries and retrieves relevant embeddings.",
+        "node-type": "service",
+        "interfaces": [
+          {
+            "unique-id": "query-endpoint",
+            "name": "Query Endpoint",
+            "description": "Production endpoint for querying the AI model."
+          }
+        ]
+      }
+    ],
+    "relationships": [
+      {
+        "unique-id": "onprem-composed",
+        "description": "On-Prem environment composed of processing components.",
+        "relationship-type": {
+          "composed-of": {
+            "container": "onprem-environment",
+            "nodes": [
+              "private-knowledge-source",
+              "data-processor",
+              "refined-knowledge-database",
+              "vector-data-loader",
+              "vector-database",
+              "query-processor"
+            ]
+          }
+        }
+      },
+      {
+        "unique-id": "saas-composed",
+        "description": "SaaS environment composed of AI Model.",
+        "relationship-type": {
+          "composed-of": {
+            "container": "saas-environment",
+            "nodes": [
+              "ai-model"
+            ]
+          }
+        }
+      },
+      {
+        "unique-id": "user",
+        "description": "Private Knowledge Source connects to Data Processor.",
+        "relationship-type": {
+          "interacts": {
+            "actor": "User",
+            "nodes": [
+              "query-processor"
+            ]
+          }
+        }
+      },
+      {
+        "unique-id": "private-knowledge-to-processor",
+        "description": "Private Knowledge Source connects to Data Processor.",
+        "relationship-type": {
+          "connects": {
+            "source": {
+              "node": "private-knowledge-source"
+            },
+            "destination": {
+              "node": "data-processor"
+            }
+          }
+        }
+      },
+      {
+        "unique-id": "data-processor-to-refined-db",
+        "description": "Data Processor stores refined knowledge in the database.",
+        "relationship-type": {
+          "connects": {
+            "source": {
+              "node": "data-processor"
+            },
+            "destination": {
+              "node": "refined-knowledge-database"
+            }
+          }
+        }
+      },
+      {
+        "unique-id": "refined-db-to-vector-loader",
+        "description": "Refined Knowledge Database connects to Vector Data Loader.",
+        "relationship-type": {
+          "connects": {
+            "source": {
+              "node": "refined-knowledge-database"
+            },
+            "destination": {
+              "node": "vector-data-loader"
+            }
+          }
+        }
+      },
+      {
+        "unique-id": "vector-loader-to-vector-db",
+        "description": "Vector Data Loader connects to Vector Database.",
+        "relationship-type": {
+          "connects": {
+            "source": {
+              "node": "vector-data-loader"
+            },
+            "destination": {
+              "node": "vector-database"
+            }
+          }
+        }
+      },
+      {
+        "unique-id": "vector-loader-to-ai-model",
+        "description": "Vector Data Loader connects to AI Model.",
+        "relationship-type": {
+          "connects": {
+            "source": {
+              "node": "vector-data-loader"
+            },
+            "destination": {
+              "node": "ai-model"
+            },
+            "interfaces": [
+              "embeddings-endpoint"
+            ]
+          }
+        }
+      },
+      {
+        "unique-id": "query-processing-to-vector-db",
+        "description": "Query Processing retrieves relevant vectorized data from Vector Database.",
+        "relationship-type": {
+          "connects": {
+            "source": {
+              "node": "query-processing"
+            },
+            "destination": {
+              "node": "vector-database"
+            }
+          }
+        }
+      },
+      {
+        "unique-id": "query-processing-to-ai-model",
+        "description": "Query Processing connects to AI Model.",
+        "relationship-type": {
+          "connects": {
+            "source": {
+              "node": "query-processing"
+            },
+            "destination": {
+              "node": "ai-model"
+            },
+            "interfaces": [
+              "inference-endpoint",
+              "embeddings-endpoint"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "flows": [
+    {
+      "unique-id": "query-flow",
+      "name": "User Query Processing",
+      "description": "Flow representing how a user query is processed through the architecture and how the response flows back to the user.",
+      "transitions": [
+        {
+          "source": "user",
+          "destination": "query-processor",
+          "direction": "source-to-destination"
+        },
+        {
+          "source": "query-processor",
+          "destination": "vector-database",
+          "direction": "source-to-destination"
+        },
+        {
+          "source": "vector-database",
+          "destination": "query-processor",
+          "direction": "destination-to-source"
+        },
+        {
+          "source": "query-processor",
+          "destination": "ai-model",
+          "interfaces": [
+            "inference-endpoint"
+          ],
+          "direction": "source-to-destination"
+        },
+        {
+          "source": "ai-model",
+          "destination": "query-processor",
+          "interfaces": [
+            "inference-endpoint"
+          ],
+          "direction": "destination-to-source"
+        },
+        {
+          "source": "query-processor",
+          "destination": "user",
+          "direction": "destination-to-source"
+        }
+      ]
+    },
+    {
+      "unique-id": "data-loading-flow",
+      "name": "Data Ingestion and Vectorization",
+      "description": "Flow representing how knowledge is processed and vectorized, and how it can be retrieved back.",
+      "transitions": [
+        {
+          "source": "private-knowledge-source",
+          "destination": "data-processor",
+          "direction": "source-to-destination"
+        },
+        {
+          "source": "data-processor",
+          "destination": "refined-knowledge-database",
+          "direction": "source-to-destination"
+        },
+        {
+          "source": "refined-knowledge-database",
+          "destination": "vector-data-loader",
+          "direction": "source-to-destination"
+        },
+        {
+          "source": "vector-data-loader",
+          "destination": "vector-database",
+          "direction": "source-to-destination"
+        },
+        {
+          "source": "vector-data-loader",
+          "destination": "ai-model",
+          "interfaces": [
+            "embeddings-endpoint"
+          ],
+          "direction": "source-to-destination"
+        },
+        {
+          "source": "ai-model",
+          "destination": "vector-data-loader",
+          "interfaces": [
+            "embeddings-endpoint"
+          ],
+          "direction": "destination-to-source"
+        }
+      ]
+    }
+  ]
+}
