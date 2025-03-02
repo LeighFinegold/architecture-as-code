@@ -1,0 +1,54 @@
+{
+  "name": "kubernetes",
+  "transformer": "kubernetes-transformer",
+  "templates": [
+    {
+      "template": "application-deployment.hbs",
+      "from": "deployment",
+      "output": "application-deployment.yaml",
+      "output-type": "single"
+    },
+    {
+      "template": "database-deployment.hbs",
+      "from": "database",
+      "output": "database-deployment.yaml",
+      "output-type": "single"
+    },
+    {
+      "template": "service.hbs",
+      "from": "service",
+      "output": "{{id}}-service.yaml",
+      "output-type": "repeated"
+    },
+    {
+      "template": "networkpolicy-allow-egress-from-app-to-db.hbs",
+      "from": "networkpolicy-allow-egress-from-app-to-db",
+      "output": "networkpolicy-allow-egress-app-to-db.yaml",
+      "output-type": "single"
+    },
+    {
+      "template": "networkpolicy-allow-ingress.hbs",
+      "from": "networkpolicy-allow-ingress",
+      "output": "networkpolicy-allow-ingress.yaml",
+      "output-type": "single"
+    },
+    {
+      "template": "networkpolicy-allow-ingress-to-db-from-app.hbs",
+      "from": "networkpolicy-allow-ingress-to-db-from-app",
+      "output": "networkpolicy-allow-ingress-to-db-from-app.yaml",
+      "output-type": "single"
+    },
+    {
+      "template": "namespace.hbs",
+      "from": "namespace",
+      "output": "namespace.yaml",
+      "output-type": "single"
+    },
+    {
+      "template": "kustomization.hbs",
+      "from": "kustomization",
+      "output": "kustomization.yaml",
+      "output-type": "single"
+    }
+  ]
+}

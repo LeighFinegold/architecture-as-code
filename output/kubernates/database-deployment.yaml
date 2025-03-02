@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-database
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      db: postgres-database
+  template:
+    metadata:
+      labels:
+        db: postgres-database
+    spec:
+      containers:
+        - name: postgres-database
+          image: postgres/postgres:16.4
+          ports:
+            - containerPort: 5432
+          env:
+                - name: DB_USER
+                  value: "admin"
+                - name: DB_NAME
+                  value: "conference"
