@@ -1,0 +1,36 @@
+{
+  "name": "docusaurus-docs",
+  "transformer": "docusaurus-transformer",
+  "templates": [
+    {
+      "template": "doc.mdx.hbs",
+      "from": "docs",
+      "output": "docs/{{id}}.mdx",
+      "output-type": "repeated"
+    },
+    {
+      "template": "sidebar.js.hbs",
+      "from": "sidebar",
+      "output": "sidebars.js",
+      "output-type": "single"
+    },
+    {
+      "template": "docusaurus.config.js",
+      "from": "docs",
+      "output": "docusaurus.config.js",
+      "output-type": "single"
+    },
+    {
+      "template": "index.md.hbs",
+      "from": "docs",
+      "output": "docs/index.md",
+      "output-type": "single"
+    },
+    {
+      "template": "package.json",
+      "from": "docs",
+      "output": "package.json",
+      "output-type": "single"
+    }
+  ]
+}

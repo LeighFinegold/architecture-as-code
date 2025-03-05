@@ -1,0 +1,26 @@
+{
+  "id": "traderx-db",
+  "title": "TraderX DB",
+  "description": "Node Type: database",
+  "source": "@site/docs/traderx-db.mdx",
+  "sourceDirName": ".",
+  "slug": "/traderx-db",
+  "permalink": "/traderx-db",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "id": "traderx-db",
+    "title": "TraderX DB"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Position Service",
+    "permalink": "/position-service"
+  },
+  "next": {
+    "title": "Bank ABC Internal Network",
+    "permalink": "/internal-bank-network"
+  }
+}

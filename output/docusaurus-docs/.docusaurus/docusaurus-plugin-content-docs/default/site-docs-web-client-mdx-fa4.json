@@ -1,0 +1,26 @@
+{
+  "id": "web-client",
+  "title": "Web Client",
+  "description": "Node Type: webclient",
+  "source": "@site/docs/web-client.mdx",
+  "sourceDirName": ".",
+  "slug": "/web-client",
+  "permalink": "/web-client",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "id": "web-client",
+    "title": "Web Client"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Trader",
+    "permalink": "/traderx-trader"
+  },
+  "next": {
+    "title": "Web GUI",
+    "permalink": "/web-gui-process"
+  }
+}

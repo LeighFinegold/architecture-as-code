@@ -1,0 +1,22 @@
+{
+  "id": "user-directory",
+  "title": "User Directory",
+  "description": "Node Type: ldap",
+  "source": "@site/docs/user-directory.mdx",
+  "sourceDirName": ".",
+  "slug": "/user-directory",
+  "permalink": "/user-directory",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "id": "user-directory",
+    "title": "User Directory"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "People Service",
+    "permalink": "/people-service"
+  }
+}

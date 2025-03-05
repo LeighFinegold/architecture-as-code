@@ -1,0 +1,26 @@
+{
+  "id": "trade-processor",
+  "title": "Trade Processor",
+  "description": "Node Type: service",
+  "source": "@site/docs/trade-processor.mdx",
+  "sourceDirName": ".",
+  "slug": "/trade-processor",
+  "permalink": "/trade-processor",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "id": "trade-processor",
+    "title": "Trade Processor"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Trade Feed",
+    "permalink": "/trade-feed"
+  },
+  "next": {
+    "title": "Accounts Service",
+    "permalink": "/accounts-service"
+  }
+}

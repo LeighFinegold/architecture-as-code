@@ -1,0 +1,26 @@
+{
+  "id": "web-gui-process",
+  "title": "Web GUI",
+  "description": "Node Type: service",
+  "source": "@site/docs/web-gui-process.mdx",
+  "sourceDirName": ".",
+  "slug": "/web-gui-process",
+  "permalink": "/web-gui-process",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "id": "web-gui-process",
+    "title": "Web GUI"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Web Client",
+    "permalink": "/web-client"
+  },
+  "next": {
+    "title": "Position Service",
+    "permalink": "/position-service"
+  }
+}

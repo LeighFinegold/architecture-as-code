@@ -1,0 +1,118 @@
+{
+  "/__docusaurus/debug-5ff": {
+    "__comp": "__comp---theme-debug-config-23-a-2ff",
+    "__context": {
+      "plugin": "plugin---docusaurus-debugb-38-ad3"
+    }
+  },
+  "/__docusaurus/debug/config-5ba": {
+    "__comp": "__comp---theme-debug-config-23-a-2ff",
+    "__context": {
+      "plugin": "plugin---docusaurus-debugb-38-ad3"
+    }
+  },
+  "/__docusaurus/debug/content-a2b": {
+    "__comp": "__comp---theme-debug-contentba-8-ce7",
+    "__context": {
+      "plugin": "plugin---docusaurus-debugb-38-ad3"
+    },
+    "__props": "__props---docusaurus-debug-content-3-c-0-be2"
+  },
+  "/__docusaurus/debug/globalData-c3c": {
+    "__comp": "__comp---theme-debug-global-dataede-0fa",
+    "__context": {
+      "plugin": "plugin---docusaurus-debugb-38-ad3"
+    }
+  },
+  "/__docusaurus/debug/metadata-156": {
+    "__comp": "__comp---theme-debug-site-metadata-68-e-3d4",
+    "__context": {
+      "plugin": "plugin---docusaurus-debugb-38-ad3"
+    }
+  },
+  "/__docusaurus/debug/registry-88c": {
+    "__comp": "__comp---theme-debug-registry-679-501",
+    "__context": {
+      "plugin": "plugin---docusaurus-debugb-38-ad3"
+    }
+  },
+  "/__docusaurus/debug/routes-000": {
+    "__comp": "__comp---theme-debug-routes-946-699",
+    "__context": {
+      "plugin": "plugin---docusaurus-debugb-38-ad3"
+    }
+  },
+  "/-a23": {
+    "__comp": "__comp---theme-docs-root-5-e-9-0b6",
+    "__context": {
+      "plugin": "plugin---aba-d70"
+    }
+  },
+  "/-276": {
+    "__comp": "__comp---theme-doc-version-roota-7-b-5de",
+    "__props": "__props---22-d-307"
+  },
+  "/-1f8": {
+    "__comp": "__comp---theme-doc-roota-94-67a"
+  },
+  "/accounts-service-e01": {
+    "__comp": "__comp---theme-doc-item-178-a40",
+    "content": "content---accounts-service-9-cf-9f2"
+  },
+  "/internal-bank-network-c41": {
+    "__comp": "__comp---theme-doc-item-178-a40",
+    "content": "content---internal-bank-network-029-591"
+  },
+  "/people-service-649": {
+    "__comp": "__comp---theme-doc-item-178-a40",
+    "content": "content---people-service-2-f-3-073"
+  },
+  "/position-service-50c": {
+    "__comp": "__comp---theme-doc-item-178-a40",
+    "content": "content---position-serviceb-14-f08"
+  },
+  "/reference-data-service-b5d": {
+    "__comp": "__comp---theme-doc-item-178-a40",
+    "content": "content---reference-data-service-018-74c"
+  },
+  "/trade-feed-0bb": {
+    "__comp": "__comp---theme-doc-item-178-a40",
+    "content": "content---trade-feed-640-fd4"
+  },
+  "/trade-processor-665": {
+    "__comp": "__comp---theme-doc-item-178-a40",
+    "content": "content---trade-processor-4-a-3-6b1"
+  },
+  "/traderx-db-780": {
+    "__comp": "__comp---theme-doc-item-178-a40",
+    "content": "content---traderx-dbe-8-a-481"
+  },
+  "/traderx-system-c01": {
+    "__comp": "__comp---theme-doc-item-178-a40",
+    "content": "content---traderx-system-7-fd-585"
+  },
+  "/traderx-trader-80b": {
+    "__comp": "__comp---theme-doc-item-178-a40",
+    "content": "content---traderx-traderd-3-d-21e"
+  },
+  "/trading-services-4c0": {
+    "__comp": "__comp---theme-doc-item-178-a40",
+    "content": "content---trading-services-904-af6"
+  },
+  "/user-directory-e44": {
+    "__comp": "__comp---theme-doc-item-178-a40",
+    "content": "content---user-directory-8-e-1-bb1"
+  },
+  "/web-client-b2f": {
+    "__comp": "__comp---theme-doc-item-178-a40",
+    "content": "content---web-clientfa-4-d72"
+  },
+  "/web-gui-process-5ee": {
+    "__comp": "__comp---theme-doc-item-178-a40",
+    "content": "content---web-gui-processb-8-e-cc7"
+  },
+  "/-c48": {
+    "__comp": "__comp---theme-doc-item-178-a40",
+    "content": "content---c-37-d02"
+  }
+}

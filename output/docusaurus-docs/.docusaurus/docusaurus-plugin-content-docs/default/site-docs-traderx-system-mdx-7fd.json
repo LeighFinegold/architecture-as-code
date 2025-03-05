@@ -1,0 +1,22 @@
+{
+  "id": "traderx-system",
+  "title": "TraderX",
+  "description": "Node Type: system",
+  "source": "@site/docs/traderx-system.mdx",
+  "sourceDirName": ".",
+  "slug": "/traderx-system",
+  "permalink": "/traderx-system",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "id": "traderx-system",
+    "title": "TraderX"
+  },
+  "sidebar": "docs",
+  "next": {
+    "title": "Trader",
+    "permalink": "/traderx-trader"
+  }
+}

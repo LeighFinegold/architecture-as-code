@@ -1,0 +1,26 @@
+{
+  "id": "people-service",
+  "title": "People Service",
+  "description": "Node Type: service",
+  "source": "@site/docs/people-service.mdx",
+  "sourceDirName": ".",
+  "slug": "/people-service",
+  "permalink": "/people-service",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "id": "people-service",
+    "title": "People Service"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Accounts Service",
+    "permalink": "/accounts-service"
+  },
+  "next": {
+    "title": "User Directory",
+    "permalink": "/user-directory"
+  }
+}

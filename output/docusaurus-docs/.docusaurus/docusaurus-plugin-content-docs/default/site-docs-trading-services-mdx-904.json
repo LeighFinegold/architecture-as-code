@@ -1,0 +1,26 @@
+{
+  "id": "trading-services",
+  "title": "Trading Services",
+  "description": "Node Type: service",
+  "source": "@site/docs/trading-services.mdx",
+  "sourceDirName": ".",
+  "slug": "/trading-services",
+  "permalink": "/trading-services",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "id": "trading-services",
+    "title": "Trading Services"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Reference Data Service",
+    "permalink": "/reference-data-service"
+  },
+  "next": {
+    "title": "Trade Feed",
+    "permalink": "/trade-feed"
+  }
+}

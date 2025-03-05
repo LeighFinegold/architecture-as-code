@@ -87,9 +87,19 @@ export class TemplateProcessor {
             register({
                 transpileOnly: true,
                 compilerOptions: {
+                    outDir: 'dist',
+                    module: 'commonjs',
+                    target: 'es2021',
+                    moduleResolution: 'node',
+                    esModuleInterop: true,
+                    declaration: true,
+                    declarationMap: true,
                     sourceMap: true,
                     inlineSourceMap: true,
                     inlineSources: true,
+                    composite: true,
+                    skipLibCheck: true,
+                    forceConsistentCasingInFileNames: true
                 },
             });
             transformerFilePath = transformerFileTs;

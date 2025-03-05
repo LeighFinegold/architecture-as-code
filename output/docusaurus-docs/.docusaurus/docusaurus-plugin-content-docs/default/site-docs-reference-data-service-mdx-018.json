@@ -1,0 +1,26 @@
+{
+  "id": "reference-data-service",
+  "title": "Reference Data Service",
+  "description": "Node Type: service",
+  "source": "@site/docs/reference-data-service.mdx",
+  "sourceDirName": ".",
+  "slug": "/reference-data-service",
+  "permalink": "/reference-data-service",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "id": "reference-data-service",
+    "title": "Reference Data Service"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Bank ABC Internal Network",
+    "permalink": "/internal-bank-network"
+  },
+  "next": {
+    "title": "Trading Services",
+    "permalink": "/trading-services"
+  }
+}

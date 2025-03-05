@@ -1,0 +1,7 @@
+module.exports = {
+docs: [
+{{#each this}}
+    '{{this}}'{{#unless @last}},{{/unless}}
+{{/each}}
+]
+};

@@ -1,0 +1,26 @@
+{
+  "id": "accounts-service",
+  "title": "Accounts Service",
+  "description": "Node Type: service",
+  "source": "@site/docs/accounts-service.mdx",
+  "sourceDirName": ".",
+  "slug": "/accounts-service",
+  "permalink": "/accounts-service",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "id": "accounts-service",
+    "title": "Accounts Service"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Trade Processor",
+    "permalink": "/trade-processor"
+  },
+  "next": {
+    "title": "People Service",
+    "permalink": "/people-service"
+  }
+}

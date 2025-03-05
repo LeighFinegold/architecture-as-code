@@ -1,0 +1,26 @@
+{
+  "id": "internal-bank-network",
+  "title": "Bank ABC Internal Network",
+  "description": "Node Type: network",
+  "source": "@site/docs/internal-bank-network.mdx",
+  "sourceDirName": ".",
+  "slug": "/internal-bank-network",
+  "permalink": "/internal-bank-network",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "id": "internal-bank-network",
+    "title": "Bank ABC Internal Network"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "TraderX DB",
+    "permalink": "/traderx-db"
+  },
+  "next": {
+    "title": "Reference Data Service",
+    "permalink": "/reference-data-service"
+  }
+}

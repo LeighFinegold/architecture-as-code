@@ -1,0 +1,26 @@
+{
+  "id": "trade-feed",
+  "title": "Trade Feed",
+  "description": "Node Type: service",
+  "source": "@site/docs/trade-feed.mdx",
+  "sourceDirName": ".",
+  "slug": "/trade-feed",
+  "permalink": "/trade-feed",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "id": "trade-feed",
+    "title": "Trade Feed"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Trading Services",
+    "permalink": "/trading-services"
+  },
+  "next": {
+    "title": "Trade Processor",
+    "permalink": "/trade-processor"
+  }
+}

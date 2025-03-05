@@ -1,0 +1,102 @@
+{
+  "docusaurus-plugin-content-docs": {
+    "default": {
+      "path": "/",
+      "versions": [
+        {
+          "name": "current",
+          "label": "Next",
+          "isLast": true,
+          "path": "/",
+          "mainDocId": "index",
+          "docs": [
+            {
+              "id": "accounts-service",
+              "path": "/accounts-service",
+              "sidebar": "docs"
+            },
+            {
+              "id": "index",
+              "path": "/"
+            },
+            {
+              "id": "internal-bank-network",
+              "path": "/internal-bank-network",
+              "sidebar": "docs"
+            },
+            {
+              "id": "people-service",
+              "path": "/people-service",
+              "sidebar": "docs"
+            },
+            {
+              "id": "position-service",
+              "path": "/position-service",
+              "sidebar": "docs"
+            },
+            {
+              "id": "reference-data-service",
+              "path": "/reference-data-service",
+              "sidebar": "docs"
+            },
+            {
+              "id": "trade-feed",
+              "path": "/trade-feed",
+              "sidebar": "docs"
+            },
+            {
+              "id": "trade-processor",
+              "path": "/trade-processor",
+              "sidebar": "docs"
+            },
+            {
+              "id": "traderx-db",
+              "path": "/traderx-db",
+              "sidebar": "docs"
+            },
+            {
+              "id": "traderx-system",
+              "path": "/traderx-system",
+              "sidebar": "docs"
+            },
+            {
+              "id": "traderx-trader",
+              "path": "/traderx-trader",
+              "sidebar": "docs"
+            },
+            {
+              "id": "trading-services",
+              "path": "/trading-services",
+              "sidebar": "docs"
+            },
+            {
+              "id": "user-directory",
+              "path": "/user-directory",
+              "sidebar": "docs"
+            },
+            {
+              "id": "web-client",
+              "path": "/web-client",
+              "sidebar": "docs"
+            },
+            {
+              "id": "web-gui-process",
+              "path": "/web-gui-process",
+              "sidebar": "docs"
+            }
+          ],
+          "draftIds": [],
+          "sidebars": {
+            "docs": {
+              "link": {
+                "path": "/traderx-system",
+                "label": "traderx-system"
+              }
+            }
+          }
+        }
+      ],
+      "breadcrumbs": true
+    }
+  }
+}

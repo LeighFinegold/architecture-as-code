@@ -1,0 +1,26 @@
+{
+  "id": "traderx-trader",
+  "title": "Trader",
+  "description": "Node Type: actor",
+  "source": "@site/docs/traderx-trader.mdx",
+  "sourceDirName": ".",
+  "slug": "/traderx-trader",
+  "permalink": "/traderx-trader",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "id": "traderx-trader",
+    "title": "Trader"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "TraderX",
+    "permalink": "/traderx-system"
+  },
+  "next": {
+    "title": "Web Client",
+    "permalink": "/web-client"
+  }
+}

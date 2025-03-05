@@ -1,0 +1,26 @@
+{
+  "id": "position-service",
+  "title": "Position Service",
+  "description": "Node Type: service",
+  "source": "@site/docs/position-service.mdx",
+  "sourceDirName": ".",
+  "slug": "/position-service",
+  "permalink": "/position-service",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "id": "position-service",
+    "title": "Position Service"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Web GUI",
+    "permalink": "/web-gui-process"
+  },
+  "next": {
+    "title": "TraderX DB",
+    "permalink": "/traderx-db"
+  }
+}
