@@ -1,0 +1,23 @@
+{
+  "$schema": "https://calm.finos.org/traderx/control-requirement/escalation",
+  "$id": "https://calm.finos.org/traderx/control-configuration/053-flow-add-update-account-escalation-policy.json",
+  "description": "Defines the escalation path for the Add/Update Account flow.",
+  "control-id": "CONTROL-053",
+  "name": "Add/Update Account Flow Escalation Control",
+  "incident-severity-levels": [
+    "LOW",
+    "MEDIUM",
+    "HIGH",
+    "CRITICAL"
+  ],
+  "escalation-tiers": [
+    "Level 1 Support",
+    "Level 2 On-Call Engineer",
+    "SRE Team",
+    "Engineering Leadership"
+  ],
+  "response-time-targets": {
+    "unit": "minutes",
+    "value": 15
+  }
+}

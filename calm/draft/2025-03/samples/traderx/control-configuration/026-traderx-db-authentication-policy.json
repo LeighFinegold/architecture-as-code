@@ -1,0 +1,13 @@
+{
+  "$schema": "https://calm.finos.org/traderx/control-requirement/authentication",
+  "$id": "https://calm.finos.org/traderx/control-configuration/026-traderx-db-authentication-policy.json",
+  "description": "Defines authentication policies for the TraderX Database.",
+  "control-id": "CONTROL-026",
+  "name": "TraderX Database Authentication Control",
+  "auth-method": "TLS Mutual Authentication",
+  "mfa-required": false,
+  "sso-enabled": false,
+  "token-expiry": 23,
+  "refresh-tokens": false,
+  "token-revocation": false
+}

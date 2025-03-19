@@ -1,0 +1,14 @@
+{
+  "$schema": "https://calm.finos.org/traderx/control-requirement/authorization",
+  "$id": "https://calm.finos.org/traderx/control-configuration/010-web-gui-authorization-policy.json",
+  "description": "Defines authorization policies for the TraderX Web Client.",
+  "control-id": "CONTROL-010",
+  "name": "TraderX Web Gui Authorization Control",
+  "role-based-access": true,
+  "access-levels": [
+    "read",
+    "write",
+    "trade",
+    "admin"
+  ]
+}

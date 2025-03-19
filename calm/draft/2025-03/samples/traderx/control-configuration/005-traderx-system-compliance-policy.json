@@ -1,0 +1,19 @@
+{
+  "$schema": "https://calm.finos.org/traderx/control-requirement/compliance",
+  "$id": "https://calm.finos.org/traderx/control-configuration/005-traderx-system-compliance-policy.json",
+  "description": "Defines regulatory compliance rules for TraderX.",
+  "control-id": "CONTROL-005",
+  "name": "TraderX Regulatory Compliance Control",
+  "compliance-frameworks": [
+    "GDPR",
+    "SOC 2",
+    "ISO 27001",
+    "MiFID II",
+    "SEC"
+  ],
+  "compliance-check-frequency": {
+    "unit": "years",
+    "value": 1
+  },
+  "audit-requirements": "Annual external compliance audit with full system logs and documentation."
+}

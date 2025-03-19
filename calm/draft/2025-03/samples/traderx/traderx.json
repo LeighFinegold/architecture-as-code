@@ -1,0 +1,378 @@
+{
+  "$schema": "https://calm.finos.org/draft/2024-12/meta/calm.json",
+  "nodes": [
+    {
+      "unique-id": "traderx-system",
+      "node-type": "system",
+      "name": "TraderX System",
+      "description": "Simple Trading System",
+      "controls": {
+        "performance-scalability": {
+          "description": "TraderX ensures system scalability and availability",
+          "requirements": [
+            {
+              "control-requirement-url": "https://calm.finos.org/traderx/control-requirement/scalability",
+              "control-config-url": "https://calm.finos.org/traderx/control-configuration/001-traderx-system-scalability-policy"
+            },
+            {
+              "control-requirement-url": "https://calm.finos.org/traderx/control-requirement/availability",
+              "control-config-url": "https://calm.finos.org/traderx/control-configuration/008-traderx-system-availability-policy"
+            }
+          ]
+        },
+        "reliability-resilience": {
+          "description": "TraderX enforces high availability using active-passive failover, timeouts, and redundancy.",
+          "requirements": [
+            {
+              "control-requirement-url": "https://calm.finos.org/traderx/control-requirement/failover-redundancy",
+              "control-config-url": "https://calm.finos.org/traderx/control-configuration/002-traderx-system-failover-redundancy-policy"
+            }
+          ]
+        },
+        "security-access": {
+          "description": "TraderX enforces strict security policies including authentication, authorization, and encryption.",
+          "requirements": [
+            {
+              "control-requirement-url": "https://calm.finos.org/traderx/control-requirement/authentication",
+              "control-config-url": "https://calm.finos.org/traderx/control-configuration/003-traderx-system-authentication-policy"
+            },
+            {
+              "control-requirement-url": "https://calm.finos.org/traderx/control-requirement/data-encryption",
+              "control-config-url": "https://calm.finos.org/traderx/control-configuration/004-traderx-system-data-encryption-policy"
+            }
+          ]
+        },
+        "compliance-risk": {
+          "description": "TraderX adheres to regulatory requirements such as MiFID II, SEC compliance, and periodic SLA reviews.",
+          "requirements": [
+            {
+              "control-requirement-url": "https://calm.finos.org/traderx/control-requirement/regulatory-compliance",
+              "control-config-url": "https://calm.finos.org/traderx/control-configuration/005-traderx-system-compliance-policy"
+            }
+          ]
+        },
+        "observability-monitoring": {
+          "description": "TraderX captures system metrics, logs activities, and triggers alerts for failures.",
+          "requirements": [
+            {
+              "control-requirement-url": "https://calm.finos.org/traderx/control-requirement/monitoring",
+              "control-config-url": "https://calm.finos.org/traderx/control-configuration/006-traderx-system-monitoring-policy"
+            },
+            {
+              "control-requirement-url": "https://calm.finos.org/traderx/control-requirement/alerting",
+              "control-config-url": "https://calm.finos.org/traderx/control-configuration/007-traderx-system-alerting-policy"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "traderx-trader",
+      "node-type": "actor",
+      "name": "TraderX Trader",
+      "description": "Person who manages accounts and executes trades"
+    },
+    {
+      "unique-id": "web-gui",
+      "node-type": "webclient",
+      "name": "Web Gui",
+      "description": "Browser based web interface for TraderX",
+      "data-classification": "Confidential",
+      "run-as": "user",
+      "controls": {
+        "security-access": {
+          "description": "TraderX Web Client enforces authentication, authorization, and encryption.",
+          "requirements": [
+            {
+              "control-requirement-url": "https://calm.finos.org/traderx/control-requirement/authentication",
+              "control-config-url": "https://calm.finos.org/traderx/control-configuration/009-web-gui-authentication-policy"
+            },
+            {
+              "control-requirement-url": "https://calm.finos.org/traderx/control-requirement/authorization",
+              "control-config-url": "https://calm.finos.org/traderx/control-configuration/010-web-gui-authorization-policy"
+            }
+          ]
+        },
+        "performance-scalability": {
+          "description": "TraderX Web Client ensures responsive UI and efficient request handling.",
+          "requirements": [
+            {
+              "control-requirement-url": "https://calm.finos.org/traderx/control-requirement/latency",
+              "control-config-url": "https://calm.finos.org/traderx/control-configuration/011-web-gui-latency-policy"
+            },
+            {
+              "control-requirement-url": "https://calm.finos.org/traderx/control-requirement/throughput",
+              "control-config-url": "https://calm.finos.org/traderx/control-configuration/012-web-gui-throughput-policy"
+            }
+          ]
+        },
+        "reliability-resilience": {
+          "description": "TraderX Web Client prevents failures and handles network timeouts.",
+          "requirements": [
+            {
+              "control-requirement-url": "https://calm.finos.org/traderx/control-requirement/timeout-handling",
+              "control-config-url": "https://calm.finos.org/traderx/control-configuration/013-web-gui-timeout-policy-user-login"
+            },
+            {
+              "control-requirement-url": "https://calm.finos.org/traderx/control-requirement/timeout-handling",
+              "control-config-url": "https://calm.finos.org/traderx/control-configuration/014-web-gui-timeout-policy-submit-trade"
+            }
+          ]
+        },
+        "observability-monitoring": {
+          "description": "TraderX Web Client logs user actions and triggers alerts for failures.",
+          "requirements": [
+            {
+              "control-requirement-url": "https://calm.finos.org/traderx/control-requirement/logging",
+              "control-config-url": "https://calm.finos.org/traderx/control-configuration/015-web-gui-logging-policy"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "accounts-service",
+      "node-type": "service",
+      "name": "Accounts Service",
+      "description": "Service which provides account management",
+      "data-classification": "Confidential",
+      "run-as": "systemId",
+      "interfaces": [
+        { "unique-id": "accounts-service-host-port-interface", "host": "localhost", "port": 18088  }
+      ],
+      "controls": {
+        "security-access": {
+          "description": "TraderX Accounts Service enforces authentication, authorization, and encryption.",
+          "requirements": [
+            {
+              "control-requirement-url": "https://calm.finos.org/traderx/control-requirement/authentication",
+              "control-config-url": "https://calm.finos.org/traderx/control-configuration/016-accounts-service-authentication-policy"
+            },
+            {
+              "control-requirement-url": "https://calm.finos.org/traderx/control-requirement/authorization",
+              "control-config-url": "https://calm.finos.org/traderx/control-configuration/017-accounts-service-authorization-policy"
+            },
+            {
+              "control-requirement-url": "https://calm.finos.org/traderx/control-requirement/data-encryption",
+              "control-config-url": "https://calm.finos.org/traderx/control-configuration/018-accounts-service-encryption-policy"
+            }
+          ]
+        },
+        "performance-scalability": {
+          "description": "TraderX Accounts Service ensures low-latency and high-throughput API responses.",
+          "requirements": [
+            {
+              "control-requirement-url": "https://calm.finos.org/traderx/control-requirement/latency",
+              "control-config-url": "https://calm.finos.org/traderx/control-configuration/019-accounts-service-latency-policy"
+            },
+            {
+              "control-requirement-url": "https://calm.finos.org/traderx/control-requirement/throughput",
+              "control-config-url": "https://calm.finos.org/traderx/control-configuration/020-accounts-service-throughput-policy"
+            },
+            {
+              "control-requirement-url": "https://calm.finos.org/traderx/control-requirement/scalability",
+              "control-config-url": "https://calm.finos.org/traderx/control-configuration/021-accounts-service-scalability-policy"
+            }
+          ]
+        },
+        "reliability-resilience": {
+          "description": "TraderX Accounts Service enforces high availability through failover and timeouts.",
+          "requirements": [
+            {
+              "control-requirement-url": "https://calm.finos.org/traderx/control-requirement/timeout-handling",
+              "control-config-url": "https://calm.finos.org/traderx/control-configuration/022-accounts-service-timeout-policy"
+            },
+            {
+              "control-requirement-url": "https://calm.finos.org/traderx/control-requirement/failover-redundancy",
+              "control-config-url": "https://calm.finos.org/traderx/control-configuration/023-accounts-service-failover-redundancy-policy"
+            },
+            {
+              "control-requirement-url": "https://calm.finos.org/traderx/control-requirement/disaster-recovery",
+              "control-config-url": "https://calm.finos.org/traderx/control-configuration/024-accounts-service-disaster-recovery-policy"
+            }
+          ]
+        },
+
+        "observability-monitoring": {
+          "description": "TraderX Accounts Service captures system logs, user interactions, and alerts for failed operations.",
+          "requirements": [
+            {
+              "control-requirement-url": "https://calm.finos.org/traderx/control-requirement/logging",
+              "control-config-url": "https://calm.finos.org/traderx/control-configuration/025-accounts-service-logging-policy"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "traderx-db",
+      "node-type": "database",
+      "name": "TraderX DB",
+      "description": "Database which stores account, trade and position state",
+      "data-classification": "Confidential",
+      "run-as": "systemId",
+      "controls": {
+        "security-access": {
+          "description": "TraderX Database enforces authentication, authorization, and encryption.",
+          "requirements": [
+            {
+              "control-requirement-url": "https://calm.finos.org/traderx/control-requirement/authentication",
+              "control-config-url": "https://calm.finos.org/traderx/control-configuration/026-traderx-db-authentication-policy"
+            },
+            {
+              "control-requirement-url": "https://calm.finos.org/traderx/control-requirement/authorization",
+              "control-config-url": "https://calm.finos.org/traderx/control-configuration/027-traderx-db-authorization-policy"
+            },
+            {
+              "control-requirement-url": "https://calm.finos.org/traderx/control-requirement/data-encryption",
+              "control-config-url": "https://calm.finos.org/traderx/control-configuration/028-traderx-db-latency-policy"
+            }
+          ]
+        },
+        "performance-scalability": {
+          "description": "TraderX Database ensures low-latency queries, high-throughput transactions, and scalability.",
+          "requirements": [
+            {
+              "control-requirement-url": "https://calm.finos.org/traderx/control-requirement/latency",
+              "control-config-url": "https://calm.finos.org/traderx/control-configuration/028-traderx-db-latency-policy"
+            },
+            {
+              "control-requirement-url": "https://calm.finos.org/traderx/control-requirement/throughput",
+              "control-config-url": "https://calm.finos.org/traderx/control-configuration/029-traderx-db-throughput-policy"
+            },
+            {
+              "control-requirement-url": "https://calm.finos.org/traderx/control-requirement/scalability",
+              "control-config-url": "https://calm.finos.org/traderx/control-configuration/030-traderx-db-scalability-policy"
+            }
+          ]
+        },
+        "reliability-resilience": {
+          "description": "TraderX Database enforces high availability through timeouts, failover, and disaster recovery.",
+          "requirements": [
+            {
+              "control-requirement-url": "https://calm.finos.org/traderx/control-requirement/timeout-handling",
+              "control-config-url": "https://calm.finos.org/traderx/control-configuration/031-traderx-db-timeout-policy"
+            },
+            {
+              "control-requirement-url": "https://calm.finos.org/traderx/control-requirement/failover-redundancy",
+              "control-config-url": "https://calm.finos.org/traderx/control-configuration/032-traderx-db-failover-redundancy-policy"
+            },
+            {
+              "control-requirement-url": "https://calm.finos.org/traderx/control-requirement/disaster-recovery",
+              "control-config-url": "https://calm.finos.org/traderx/control-configuration/033-traderx-db-disaster-recovery-policy"
+            }
+          ]
+        },
+        "observability-monitoring": {
+          "description": "TraderX Database captures query logs, monitors performance, and triggers alerts for failures.",
+          "requirements": [
+            {
+              "control-requirement-url": "https://calm.finos.org/traderx/control-requirement/logging",
+              "control-config-url": "https://calm.finos.org/traderx/control-configuration/034-traderx-db-logging-policy"
+            },
+            {
+              "control-requirement-url": "https://calm.finos.org/traderx/control-requirement/monitoring",
+              "control-config-url": "https://calm.finos.org/traderx/control-configuration/035-traderx-db-monitoring-policy"
+            },
+            {
+              "control-requirement-url": "https://calm.finos.org/traderx/control-requirement/alerting",
+              "control-config-url": "https://calm.finos.org/traderx/control-configuration/036-traderx-db-alerting-policy"
+            }
+          ]
+        }
+      },
+      "interfaces": [
+        {
+          "unique-id": "traderx-db-url-interface",
+          "url": "postgresql://user:password@db.example.com:5432/mydb"
+        }
+      ]
+
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "trader-executes-trades",
+      "description": "Executes Trades",
+      "relationship-type": {
+        "interacts": {
+          "actor": "traderx-trader",
+          "nodes": [
+            "web-gui"
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "traderx-system-is-composed-of",
+      "relationship-type": {
+        "composed-of": {
+          "container": "traderx-system",
+          "nodes": [
+            "web-gui",
+            "traderx-db",
+            "accounts-service"
+
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "web-gui-connects-accounts-service",
+      "description": "Creates/Updates accounts. Gets list of accounts.",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "web-gui"
+          },
+          "destination": {
+            "node": "accounts-service"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "controls": {
+        "security-access": {
+          "description": "Defines security policies for Web GUI ↔ Accounts Service communication.",
+          "requirements": [
+            {
+              "control-requirement-url": "https://calm.finos.org/traderx/control-requirement/data-encryption",
+              "control-config-url": "https://calm.finos.org/traderx/control-configuration/037-web-gui-connects-accounts-service-encryption-policy"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "accounts-service-connects-traderx-db-for-accounts",
+      "description": "CRUD operations on account",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "accounts-service"
+          },
+          "destination": {
+            "node": "traderx-db"
+          }
+        }
+      },
+      "protocol": "JDBC",
+      "controls": {
+        "security-access": {
+          "description": "Defines encryption policies for Accounts Service ↔ TraderX Database communication.",
+          "requirements": [
+            {
+              "control-requirement-url": "https://calm.finos.org/traderx/control-requirement/data-encryption",
+              "control-config-url": "https://calm.finos.org/traderx/control-configuration/040-accounts-service-connects-traderx-db-for-accounts-encryption-policy"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "flows": [
+    "https://calm.finos.org/traderx/flow/add-update-account"
+  ]
+}
+
+

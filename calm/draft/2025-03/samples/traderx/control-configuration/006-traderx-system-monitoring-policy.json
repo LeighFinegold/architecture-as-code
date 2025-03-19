@@ -1,0 +1,12 @@
+{
+  "$schema": "https://calm.finos.org/traderx/control-requirement/monitoring",
+  "$id": "https://calm.finos.org/traderx/control-configuration/006-traderx-system-monitoring-policy.json",
+  "description": "Defines system monitoring policies for TraderX.",
+  "control-id": "CONTROL-006",
+  "name": "TraderX Monitoring Control",
+  "real-time-monitoring": "Prometheus + Grafana dashboards",
+  "consumer-reporting": {
+    "unit": "days",
+    "value": 1
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://calm.finos.org/traderx/control-requirement/logging",
+  "$id": "https://calm.finos.org/traderx/control-configuration/034-traderx-db-logging-policy.json",
+  "description": "Defines logging requirements for the TraderX Database.",
+  "control-id": "CONTROL-034",
+  "name": "TraderX Database Logging Control",
+  "log-levels": [
+    "INFO",
+    "WARN",
+    "ERROR"
+  ],
+  "log-destination": "Cloud SIEM (Splunk)",
+  "log-retention-period": {
+    "unit": "days",
+    "value": 90
+  }
+}

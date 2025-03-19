@@ -1,0 +1,16 @@
+{
+  "$schema": "https://calm.finos.org/traderx/control-requirement/authentication",
+  "$id": "https://calm.finos.org/traderx/control-configuration/016-accounts-service-authentication-policy.json",
+  "description": "Defines authentication policies for the TraderX Accounts Service.",
+  "control-id": "CONTROL-016",
+  "name": "TraderX Accounts Service Authentication Control",
+  "auth-method": "OAuth",
+  "token-expiry": {
+    "unit": "minutes",
+    "value": 15
+  },
+  "mfa-required": true,
+  "sso-enabled": true,
+  "refresh-tokens": false,
+  "token-revocation": false
+}

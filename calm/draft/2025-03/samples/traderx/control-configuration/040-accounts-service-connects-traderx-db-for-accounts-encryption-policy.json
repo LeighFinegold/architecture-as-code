@@ -1,0 +1,9 @@
+{
+  "$schema": "https://calm.finos.org/traderx/control-requirement/data-encryption",
+  "$id": "https://calm.finos.org/traderx/control-configuration/040-accounts-service-connects-traderx-db-for-accounts-encryption-policy.json",
+  "description": "Defines encryption policies for Accounts Service ↔ TraderX Database communication.",
+  "control-id": "CONTROL-040",
+  "name": "Accounts Service ↔ TraderX DB Encryption Control",
+  "encryption-in-transit": "TLS 1.2",
+  "encryption-at-rest": "AES-256"
+}

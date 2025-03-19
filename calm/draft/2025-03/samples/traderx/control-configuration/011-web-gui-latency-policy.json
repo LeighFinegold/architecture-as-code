@@ -1,0 +1,15 @@
+{
+  "$schema": "https://calm.finos.org/traderx/control-requirement/latency",
+  "$id": "https://calm.finos.org/traderx/control-configuration/011-web-gui-latency-policy.json",
+  "description": "Defines frontend latency requirements for the TraderX Web Client.",
+  "control-id": "CONTROL-011",
+  "name": "TraderX Web Gui Latency Control",
+  "expected-latency": {
+    "unit": "milliseconds",
+    "value": 200
+  },
+  "alert-threshold": {
+    "unit": "milliseconds",
+    "value": 500
+  }
+}

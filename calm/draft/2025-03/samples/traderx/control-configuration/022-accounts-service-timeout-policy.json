@@ -1,0 +1,12 @@
+{
+  "$schema": "https://calm.finos.org/traderx/control-requirement/timeout-handling",
+  "$id": "https://calm.finos.org/traderx/control-configuration/022-accounts-service-timeout-policy.json",
+  "description": "Defines timeout handling for the TraderX Accounts Service.",
+  "control-id": "CONTROL-022",
+  "name": "TraderX Accounts Service Timeout Control",
+  "operation": "account-update",
+  "operation-timeout": {
+    "unit": "seconds",
+    "value": 10
+  }
+}

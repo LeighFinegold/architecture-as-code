@@ -1,0 +1,9 @@
+{
+  "$schema": "https://calm.finos.org/traderx/control-requirement/scalability",
+  "$id": "https://calm.finos.org/traderx/control-configuration/021-accounts-service-scalability-policy.json",
+  "description": "Defines auto-scaling policies for the TraderX Accounts Service.",
+  "control-id": "CONTROL-021",
+  "name": "TraderX Accounts Service Scalability Control",
+  "scaling-strategy": "horizontal",
+  "max-capacity": 50
+}

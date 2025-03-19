@@ -1,0 +1,8 @@
+{
+  "$schema": "https://calm.finos.org/traderx/control-requirement/availability",
+  "$id": "https://calm.finos.org/traderx/control-configuration/052-flow-add-update-account-availability-policy.json",
+  "description": "Defines uptime SLAs for the Add/Update Account flow.",
+  "control-id": "CONTROL-052",
+  "name": "Add/Update Account Flow Availability Control",
+  "uptime-guarantee": 99.95
+}

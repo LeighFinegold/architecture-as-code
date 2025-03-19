@@ -1,0 +1,46 @@
+{
+  "$schema": "https://calm.finos.org/traderx/control-requirement/db-monitoring",
+  "$id": "https://calm.finos.org/traderx/control-configuration/035-traderx-db-monitoring-policy.json",
+  "description": "Defines monitoring requirements for the TraderX Database.",
+  "control-id": "CONTROL-035",
+  "name": "TraderX Database Monitoring Control",
+  "monitoring-systems": [
+    "Prometheus",
+    "Grafana"
+  ],
+  "metrics-collected": [
+    "Query Latency",
+    "Transaction Throughput",
+    "Lock Wait Times",
+    "Cache Hit Ratio",
+    "Replication Lag",
+    "Deadlock Rate",
+    "Disk IO",
+    "CPU Usage",
+    "Memory Usage"
+  ],
+  "alerting-thresholds": {
+    "cpu-usage": 85,
+    "memory-usage": 90,
+    "query-latency": {
+      "unit": "milliseconds",
+      "value": 1
+    },
+    "transaction-throughput": 100,
+    "replication-lag": {
+      "unit": "seconds",
+      "value": 10
+    },
+    "cache-hit-ratio": 85,
+    "deadlock-rate": 5
+  },
+  "log-monitoring-enabled": true,
+  "reporting-frequency": {
+    "unit": "hours",
+    "value": 1
+  },
+  "historical-data-retention": {
+    "unit": "weeks",
+    "value": 1
+  }
+}

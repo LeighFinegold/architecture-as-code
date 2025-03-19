@@ -1,0 +1,10 @@
+{
+  "$schema": "https://calm.finos.org/traderx/control-requirement/data-encryption",
+  "$id": "https://calm.finos.org/traderx/control-configuration/018-accounts-service-encryption-policy.json",
+  "description": "Defines encryption policies for the TraderX Accounts Service.",
+  "control-id": "CONTROL-018",
+  "name": "TraderX Accounts Service Encryption Control",
+  "encryption-in-transit": "TLS 1.3",
+  "encryption-at-rest": "AES-256",
+  "key-management": "AWS KMS"
+}

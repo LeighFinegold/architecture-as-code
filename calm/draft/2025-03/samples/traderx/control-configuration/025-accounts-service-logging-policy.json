@@ -1,0 +1,17 @@
+{
+  "$schema": "https://calm.finos.org/traderx/control-requirement/logging",
+  "$id": "https://calm.finos.org/traderx/control-configuration/025-accounts-service-logging-policy.json",
+  "description": "Defines logging requirements for the TraderX Accounts Service.",
+  "control-id": "CONTROL-025",
+  "name": "TraderX Accounts Service Logging Control",
+  "log-levels": [
+    "INFO",
+    "WARN",
+    "ERROR"
+  ],
+  "log-destination": "File",
+  "log-retention-period": {
+    "unit": "days",
+    "value": 7
+  }
+}

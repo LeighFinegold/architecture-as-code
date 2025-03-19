@@ -1,0 +1,9 @@
+{
+  "$schema": "https://calm.finos.org/traderx/control-requirement/data-encryption",
+  "$id": "https://calm.finos.org/traderx/control-configuration/037-web-gui-connects-accounts-service-encryption-policy.json",
+  "description": "Defines encryption policies for Web GUI ↔ Accounts Service communication.",
+  "control-id": "CONTROL-037",
+  "name": "Web GUI ↔ Accounts Encryption Control",
+  "encryption-in-transit": "TLS 1.3",
+  "encryption-at-rest": "AES-128"
+}

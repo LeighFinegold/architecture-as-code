@@ -1,0 +1,12 @@
+{
+  "$schema": "https://calm.finos.org/traderx/control-requirement/timeout-handling",
+  "$id": "https://calm.finos.org/traderx/control-configuration/031-traderx-db-timeout-policy.json",
+  "description": "Defines query timeout handling for the TraderX Database.",
+  "control-id": "CONTROL-031",
+  "name": "TraderX Database Timeout Control",
+  "operation": "query-execution",
+  "operation-timeout": {
+    "unit": "seconds",
+    "value": 3
+  }
+}

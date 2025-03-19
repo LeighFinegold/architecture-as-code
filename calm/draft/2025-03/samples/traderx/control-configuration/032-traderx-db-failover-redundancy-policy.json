@@ -1,0 +1,17 @@
+{
+  "$schema": "https://calm.finos.org/traderx/control-requirement/failover-redundancy",
+  "$id": "https://calm.finos.org/traderx/control-configuration/032-traderx-db-failover-redundancy-policy.json",
+  "description": "Defines failover and redundancy requirements for the TraderX Database.",
+  "control-id": "CONTROL-032",
+  "name": "TraderX Database Failover & Redundancy Control",
+  "failover-strategy": "active-passive",
+  "recovery-time-objective": {
+    "unit": "minutes",
+    "value": 5
+  },
+  "recovery-point-objective": {
+    "unit": "minutes",
+    "value": 2
+  },
+  "failover-mechanism": "DNS failover"
+}

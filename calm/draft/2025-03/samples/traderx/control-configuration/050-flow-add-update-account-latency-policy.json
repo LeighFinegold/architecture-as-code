@@ -1,0 +1,15 @@
+{
+  "$schema": "https://calm.finos.org/traderx/control-requirement/latency",
+  "$id": "https://calm.finos.org/traderx/control-configuration/050-flow-add-update-account-latency-policy.json",
+  "description": "Defines latency SLAs for the Add/Update Account flow.",
+  "control-id": "CONTROL-050",
+  "name": "Add/Update Account Flow Latency Control",
+  "expected-latency": {
+    "unit": "milliseconds",
+    "value": 500
+  },
+  "alert-threshold": {
+    "unit": "milliseconds",
+    "value": 1000
+  }
+}

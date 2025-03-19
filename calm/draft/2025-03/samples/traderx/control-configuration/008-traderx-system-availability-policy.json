@@ -1,0 +1,8 @@
+{
+  "$schema": "https://calm.finos.org/traderx/control-requirement/availability",
+  "$id": "https://calm.finos.org/traderx/control-configuration/008-traderx-system-availability-policy.json",
+  "description": "Defines uptime guarantees for TraderX.",
+  "control-id": "CONTROL-008",
+  "name": "TraderX Availability Control",
+  "uptime-guarantee": 99.95
+}

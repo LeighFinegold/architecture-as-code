@@ -1,0 +1,12 @@
+{
+  "$schema": "https://calm.finos.org/traderx/control-requirement/throughput",
+  "$id": "https://calm.finos.org/traderx/control-configuration/051-flow-add-update-account-throughput-policy.json",
+  "description": "Defines uptime SLAs for the Add/Update Account flow.",
+  "control-id": "CONTROL-051",
+  "name": "Add/Update Account Flow Availability Control",
+  "uptime-guarantee": 99.95,
+  "expected-message-rate": {
+      "unit":
+
+  }
+}

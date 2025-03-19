@@ -1,0 +1,15 @@
+{
+  "$schema": "https://calm.finos.org/traderx/control-requirement/latency",
+  "$id": "https://calm.finos.org/traderx/control-configuration/019-accounts-service-latency-policy.json",
+  "description": "Defines backend latency requirements for the TraderX Accounts Service.",
+  "control-id": "CONTROL-019",
+  "name": "TraderX Accounts Service Latency Control",
+  "expected-latency": {
+    "unit": "milliseconds",
+    "value": 300
+  },
+  "alert-threshold": {
+    "unit": "milliseconds",
+    "value": 800
+  }
+}

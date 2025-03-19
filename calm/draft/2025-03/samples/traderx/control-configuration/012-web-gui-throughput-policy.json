@@ -1,0 +1,11 @@
+{
+  "$schema": "https://calm.finos.org/traderx/control-requirement/throughput",
+  "$id": "https://calm.finos.org/traderx/control-configuration/012-web-gui-throughput-policy.json",
+  "description": "Defines throughput requirements for the TraderX Web Client.",
+  "control-id": "CONTROL-012",
+  "name": "TraderX Web Gui Throughput Control",
+  "expected-message-rate": {
+    "unit": "requests per second",
+    "value": 500
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "$schema": "https://calm.finos.org/traderx/control-requirement/scalability",
+  "$id": "https://calm.finos.org/traderx/control-configuration/030-traderx-db-scalability-policy.json",
+  "description": "Defines auto-scaling policies for the TraderX Database.",
+  "control-id": "CONTROL-030",
+  "name": "TraderX Database Scalability Control",
+  "scaling-strategy": "read-replicas",
+  "max-capacity": 10
+}

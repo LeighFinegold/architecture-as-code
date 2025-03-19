@@ -1,0 +1,12 @@
+{
+  "$schema": "https://calm.finos.org/traderx/control-requirement/timeout-handling",
+  "$id": "https://calm.finos.org/traderx/control-configuration/014-web-gui-timeout-policy-submit-trade.json",
+  "description": "Defines timeout handling for the submit trade operation in the TraderX Web Client.",
+  "control-id": "CONTROL-014",
+  "name": "TraderX Web Gui Submit Trade Timeout Control",
+  "operation": "submit-trade",
+  "operation-timeout": {
+    "unit": "seconds",
+    "value": 10
+  }
+}

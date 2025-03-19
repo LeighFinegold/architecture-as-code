@@ -1,0 +1,12 @@
+{
+  "$schema": "https://calm.finos.org/traderx/control-requirement/timeout-handling",
+  "$id": "https://calm.finos.org/traderx/control-configuration/013-web-gui-timeout-policy-user-login.json",
+  "description": "Defines timeout handling for the user login operation in the TraderX Web Client.",
+  "control-id": "CONTROL-013",
+  "name": "TraderX Web Gui User Login Timeout Control",
+  "operation": "user-login",
+  "operation-timeout": {
+    "unit": "seconds",
+    "value": 5
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://calm.finos.org/traderx/control-requirement/latency",
+  "$id": "https://calm.finos.org/traderx/control-configuration/028-traderx-db-latency-policy.json",
+  "description": "Defines query response time requirements for the TraderX Database.",
+  "control-id": "CONTROL-028",
+  "name": "TraderX Database Latency Control",
+  "expected-latency": {
+    "unit": "milliseconds",
+    "value": 200
+  },
+  "alert-threshold": {
+    "unit": "milliseconds",
+    "value": 500
+  }
+}

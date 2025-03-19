@@ -1,0 +1,16 @@
+{
+  "$schema": "https://calm.finos.org/traderx/control-requirement/disaster-recovery",
+  "$id": "https://calm.finos.org/traderx/control-configuration/033-traderx-db-disaster-recovery-policy.json",
+  "description": "Defines disaster recovery objectives for the TraderX Database.",
+  "control-id": "CONTROL-033",
+  "name": "TraderX Database Disaster Recovery Control",
+  "backup-frequency": {
+    "unit": "hours",
+    "value": 4
+  },
+  "backup-retention-period": {
+    "unit": "days",
+    "value": 30
+  },
+  "disaster-recovery-region": "us-east"
+}

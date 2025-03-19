@@ -1,0 +1,53 @@
+{
+  "$schema": "https://calm.finos.org/draft/2024-12/meta/flow.json",
+  "$id": "https://calm.finos.org/traderx/flow/add-update-account",
+  "unique-id": "flow-add-update-account",
+  "name": "Add or Update Account",
+  "description": "Flow for adding or updating account information in the database.",
+  "transitions": [
+    {
+      "relationship-unique-id": "web-gui-process-uses-accounts-service",
+      "sequence-number": 1,
+      "summary": "Submit Account Create/Update"
+    },
+    {
+      "relationship-unique-id": "accounts-service-uses-traderx-db-for-accounts",
+      "sequence-number": 2,
+      "summary": "inserts or updates account"
+    },
+    {
+      "relationship-unique-id": "web-gui-process-uses-accounts-service",
+      "sequence-number": 3,
+      "summary": "Returns Account Create/Update Response Status",
+      "direction": "destination-to-source"
+    }
+  ],
+  "controls": {
+    "performance-scalability": {
+      "description": "Defines latency and throughput expectations for the flow.",
+      "requirements": [
+        {
+          "control-requirement-url": "https://calm.finos.org/traderx/control-requirement/latency",
+          "control-config-url": "https://calm.finos.org/traderx/control-configuration/050-flow-add-update-account-latency-policy"
+        },
+        {
+          "control-requirement-url": "https://calm.finos.org/traderx/control-requirement/throughput",
+          "control-config-url": "https://calm.finos.org/traderx/control-configuration/051-flow-add-update-account-throughput-policy"
+        },
+        {
+          "control-requirement-url": "https://calm.finos.org/traderx/control-requirement/availability",
+          "control-config-url": "https://calm.finos.org/traderx/control-configuration/052-flow-add-update-account-availability-policy"
+        }
+      ]
+    },
+    "incident-response": {
+      "description": "Defines the escalation path for incidents affecting the flow.",
+      "requirements": [
+        {
+          "control-requirement-url": "https://calm.finos.org/traderx/control-requirement/escalation-path",
+          "control-config-url": "https://calm.finos.org/traderx/control-configuration/053-flow-add-update-account-escalation-policy"
+        }
+      ]
+    }
+  }
+}

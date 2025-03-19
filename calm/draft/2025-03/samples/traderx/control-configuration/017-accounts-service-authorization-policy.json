@@ -1,0 +1,13 @@
+{
+  "$schema": "https://calm.finos.org/traderx/control-requirement/authorization",
+  "$id": "https://calm.finos.org/traderx/control-configuration/017-accounts-service-authorization-policy.json",
+  "description": "Defines authorization policies for the TraderX Accounts Service.",
+  "control-id": "CONTROL-017",
+  "name": "TraderX Accounts Service Authorization Control",
+  "role-based-access": true,
+  "access-levels": [
+    "read",
+    "write",
+    "admin"
+  ]
+}

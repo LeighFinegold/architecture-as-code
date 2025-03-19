@@ -1,0 +1,16 @@
+{
+    "$schema": "https://calm.finos.org/traderx/control-requirement/scalability",
+    "$id": "https://calm.finos.org/traderx/control-configuration/001-traderx-system-scalability-policy.json",
+    "description": "Defines how TraderX handles scalability, including auto-scaling thresholds and resource limits.",
+    "control-id": "CONTROL-001",
+    "name": "TraderX Scalability Control",
+    "scaling-strategy": "auto",
+    "max-concurrent-requests": 10000,
+    "max-throughput": {
+        "rate": 5000,
+        "per": "second"
+    },
+    "max-resource-utilization": 80,
+    "scaling-triggers": ["CPU", "memory", "request-rate"]
+
+}

@@ -1,0 +1,22 @@
+{
+  "$schema": "https://calm.finos.org/traderx/control-requirement/alerting",
+  "$id": "https://calm.finos.org/traderx/control-configuration/007-traderx-system-alerting-policy.json",
+  "description": "Defines alerting and notification policies for TraderX.",
+  "control-id": "CONTROL-007",
+  "name": "TraderX Alerting & Notification Control",
+  "alert-types": [
+    "email",
+    "pager",
+    "slack"
+  ],
+  "alert-severity-levels": [
+    "LOW",
+    "MEDIUM",
+    "HIGH",
+    "CRITICAL"
+  ],
+  "alert-response-time": {
+    "unit": "minutes",
+    "value": 5
+  }
+}

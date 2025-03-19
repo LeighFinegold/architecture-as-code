@@ -1,0 +1,383 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="JsonSchemaMappingsProjectConfiguration">
+    <state>
+      <map>
+        
+        <entry key="CALM Business Logic-Enforcement">
+          <value>
+            <SchemaInfo>
+              <option name="name" value="CALM Business Logic-Enforcement" />
+              <option name="relativePathToSchema" value="calm/draft/2025-03/samples/traderx/control-requirement/business_logic_and_process_control/business-logic-enforcement-control-requirement.json" />
+              <option name="schemaVersion" value="JSON Schema 2020-12" />
+              <option name="applicationDefined" value="true" />              
+            </SchemaInfo>
+          </value>
+        </entry>
+
+        <entry key="CALM Access Review">
+          <value>
+            <SchemaInfo>
+              <option name="name" value="CALM Access Review" />
+              <option name="relativePathToSchema" value="calm/draft/2025-03/samples/traderx/control-requirement/compliance_and_governance/access-review-control-requirements.json" />
+              <option name="schemaVersion" value="JSON Schema 2020-12" />
+              <option name="applicationDefined" value="true" />              
+            </SchemaInfo>
+          </value>
+        </entry>
+
+        <entry key="CALM Approval Workflow">
+          <value>
+            <SchemaInfo>
+              <option name="name" value="CALM Approval Workflow" />
+              <option name="relativePathToSchema" value="calm/draft/2025-03/samples/traderx/control-requirement/compliance_and_governance/approval-workflow-control-requirement.json" />
+              <option name="schemaVersion" value="JSON Schema 2020-12" />
+              <option name="applicationDefined" value="true" />              
+            </SchemaInfo>
+          </value>
+        </entry>
+
+        <entry key="CALM Regulatory Compliance">
+          <value>
+            <SchemaInfo>
+              <option name="name" value="CALM Regulatory Compliance" />
+              <option name="relativePathToSchema" value="calm/draft/2025-03/samples/traderx/control-requirement/compliance_and_governance/regulatory-compliance-control-requirement.json" />
+              <option name="schemaVersion" value="JSON Schema 2020-12" />
+              <option name="applicationDefined" value="true" />              
+            </SchemaInfo>
+          </value>
+        </entry>
+
+        <entry key="CALM Review Adjustments">
+          <value>
+            <SchemaInfo>
+              <option name="name" value="CALM Review Adjustments" />
+              <option name="relativePathToSchema" value="calm/draft/2025-03/samples/traderx/control-requirement/compliance_and_governance/review-adjustments-control-requirement.json" />
+              <option name="schemaVersion" value="JSON Schema 2020-12" />
+              <option name="applicationDefined" value="true" />              
+            </SchemaInfo>
+          </value>
+        </entry>
+
+        <entry key="CALM Data Consistency">
+          <value>
+            <SchemaInfo>
+              <option name="name" value="CALM Data Consistency" />
+              <option name="relativePathToSchema" value="calm/draft/2025-03/samples/traderx/control-requirement/data_integrity_and_retention/data-consistency-requirement.json" />
+              <option name="schemaVersion" value="JSON Schema 2020-12" />
+              <option name="applicationDefined" value="true" />              
+            </SchemaInfo>
+          </value>
+        </entry>
+
+        <entry key="CALM Data Integrity">
+          <value>
+            <SchemaInfo>
+              <option name="name" value="CALM Data Integrity" />
+              <option name="relativePathToSchema" value="calm/draft/2025-03/samples/traderx/control-requirement/data_integrity_and_retention/data-integrity-control-requirement.json" />
+              <option name="schemaVersion" value="JSON Schema 2020-12" />
+              <option name="applicationDefined" value="true" />              
+            </SchemaInfo>
+          </value>
+        </entry>
+
+        <entry key="CALM Data Retention">
+          <value>
+            <SchemaInfo>
+              <option name="name" value="CALM Data Retention" />
+              <option name="relativePathToSchema" value="calm/draft/2025-03/samples/traderx/control-requirement/data_integrity_and_retention/data-retention-control-requirement.json" />
+              <option name="schemaVersion" value="JSON Schema 2020-12" />
+              <option name="applicationDefined" value="true" />              
+            </SchemaInfo>
+          </value>
+        </entry>
+
+        <entry key="CALM Schema Validation">
+          <value>
+            <SchemaInfo>
+              <option name="name" value="CALM Schema Validation" />
+              <option name="relativePathToSchema" value="calm/draft/2025-03/samples/traderx/control-requirement/data_integrity_and_retention/schema-validation-control-requirement.json" />
+              <option name="schemaVersion" value="JSON Schema 2020-12" />
+              <option name="applicationDefined" value="true" />              
+            </SchemaInfo>
+          </value>
+        </entry>
+
+        <entry key="CALM Alerting">
+          <value>
+            <SchemaInfo>
+              <option name="name" value="CALM Alerting" />
+              <option name="relativePathToSchema" value="calm/draft/2025-03/samples/traderx/control-requirement/monitoring_and_observability/alerting-control-requirement.json" />
+              <option name="schemaVersion" value="JSON Schema 2020-12" />
+              <option name="applicationDefined" value="true" />              
+            </SchemaInfo>
+          </value>
+        </entry>
+
+        <entry key="CALM Anomaly Detection">
+          <value>
+            <SchemaInfo>
+              <option name="name" value="CALM Anomaly Detection" />
+              <option name="relativePathToSchema" value="calm/draft/2025-03/samples/traderx/control-requirement/monitoring_and_observability/anomaly-detection-control-requirement.json" />
+              <option name="schemaVersion" value="JSON Schema 2020-12" />
+              <option name="applicationDefined" value="true" />              
+            </SchemaInfo>
+          </value>
+        </entry>
+
+        <entry key="CALM Db Monitoring">
+          <value>
+            <SchemaInfo>
+              <option name="name" value="CALM Db Monitoring" />
+              <option name="relativePathToSchema" value="calm/draft/2025-03/samples/traderx/control-requirement/monitoring_and_observability/db-monitoring-control-requirement.json" />
+              <option name="schemaVersion" value="JSON Schema 2020-12" />
+              <option name="applicationDefined" value="true" />              
+            </SchemaInfo>
+          </value>
+        </entry>
+
+        <entry key="CALM Dependency Health">
+          <value>
+            <SchemaInfo>
+              <option name="name" value="CALM Dependency Health" />
+              <option name="relativePathToSchema" value="calm/draft/2025-03/samples/traderx/control-requirement/monitoring_and_observability/dependency-health-control-requirement.json" />
+              <option name="schemaVersion" value="JSON Schema 2020-12" />
+              <option name="applicationDefined" value="true" />              
+            </SchemaInfo>
+          </value>
+        </entry>
+
+        <entry key="CALM Logging">
+          <value>
+            <SchemaInfo>
+              <option name="name" value="CALM Logging" />
+              <option name="relativePathToSchema" value="calm/draft/2025-03/samples/traderx/control-requirement/monitoring_and_observability/logging-control-requirement.json" />
+              <option name="schemaVersion" value="JSON Schema 2020-12" />
+              <option name="applicationDefined" value="true" />              
+            </SchemaInfo>
+          </value>
+        </entry>
+
+        <entry key="CALM Monitoring">
+          <value>
+            <SchemaInfo>
+              <option name="name" value="CALM Monitoring" />
+              <option name="relativePathToSchema" value="calm/draft/2025-03/samples/traderx/control-requirement/monitoring_and_observability/monitoring-control-requirement.json" />
+              <option name="schemaVersion" value="JSON Schema 2020-12" />
+              <option name="applicationDefined" value="true" />              
+            </SchemaInfo>
+          </value>
+        </entry>
+
+        <entry key="CALM Tracing">
+          <value>
+            <SchemaInfo>
+              <option name="name" value="CALM Tracing" />
+              <option name="relativePathToSchema" value="calm/draft/2025-03/samples/traderx/control-requirement/monitoring_and_observability/tracing-control-requirement.json" />
+              <option name="schemaVersion" value="JSON Schema 2020-12" />
+              <option name="applicationDefined" value="true" />              
+            </SchemaInfo>
+          </value>
+        </entry>
+
+        <entry key="CALM Latency">
+          <value>
+            <SchemaInfo>
+              <option name="name" value="CALM Latency" />
+              <option name="relativePathToSchema" value="calm/draft/2025-03/samples/traderx/control-requirement/performance_and_scalability/latency-control-requirement.json" />
+              <option name="schemaVersion" value="JSON Schema 2020-12" />
+              <option name="applicationDefined" value="true" />              
+            </SchemaInfo>
+          </value>
+        </entry>
+
+        <entry key="CALM Resource Utilization">
+          <value>
+            <SchemaInfo>
+              <option name="name" value="CALM Resource Utilization" />
+              <option name="relativePathToSchema" value="calm/draft/2025-03/samples/traderx/control-requirement/performance_and_scalability/resource-utilization-control-requirement.json" />
+              <option name="schemaVersion" value="JSON Schema 2020-12" />
+              <option name="applicationDefined" value="true" />              
+            </SchemaInfo>
+          </value>
+        </entry>
+
+        <entry key="CALM Scalability">
+          <value>
+            <SchemaInfo>
+              <option name="name" value="CALM Scalability" />
+              <option name="relativePathToSchema" value="calm/draft/2025-03/samples/traderx/control-requirement/performance_and_scalability/scalability-control-requirement.json" />
+              <option name="schemaVersion" value="JSON Schema 2020-12" />
+              <option name="applicationDefined" value="true" />              
+            </SchemaInfo>
+          </value>
+        </entry>
+
+        <entry key="CALM Throughput">
+          <value>
+            <SchemaInfo>
+              <option name="name" value="CALM Throughput" />
+              <option name="relativePathToSchema" value="calm/draft/2025-03/samples/traderx/control-requirement/performance_and_scalability/throughput-control-requirement.json" />
+              <option name="schemaVersion" value="JSON Schema 2020-12" />
+              <option name="applicationDefined" value="true" />              
+            </SchemaInfo>
+          </value>
+        </entry>
+
+        <entry key="CALM Timeout Handling">
+          <value>
+            <SchemaInfo>
+              <option name="name" value="CALM Timeout Handling" />
+              <option name="relativePathToSchema" value="calm/draft/2025-03/samples/traderx/control-requirement/performance_and_scalability/timeout-handling-control-requirement.json" />
+              <option name="schemaVersion" value="JSON Schema 2020-12" />
+              <option name="applicationDefined" value="true" />              
+            </SchemaInfo>
+          </value>
+        </entry>
+
+        <entry key="CALM Availability">
+          <value>
+            <SchemaInfo>
+              <option name="name" value="CALM Availability" />
+              <option name="relativePathToSchema" value="calm/draft/2025-03/samples/traderx/control-requirement/resilience_and_risk_management/availability-control-requirement.json" />
+              <option name="schemaVersion" value="JSON Schema 2020-12" />
+              <option name="applicationDefined" value="true" />              
+            </SchemaInfo>
+          </value>
+        </entry>
+
+        <entry key="CALM Disaster Recovery">
+          <value>
+            <SchemaInfo>
+              <option name="name" value="CALM Disaster Recovery" />
+              <option name="relativePathToSchema" value="calm/draft/2025-03/samples/traderx/control-requirement/resilience_and_risk_management/disaster-recovery-control-requirement.json" />
+              <option name="schemaVersion" value="JSON Schema 2020-12" />
+              <option name="applicationDefined" value="true" />              
+            </SchemaInfo>
+          </value>
+        </entry>
+
+        <entry key="CALM Error Handling">
+          <value>
+            <SchemaInfo>
+              <option name="name" value="CALM Error Handling" />
+              <option name="relativePathToSchema" value="calm/draft/2025-03/samples/traderx/control-requirement/resilience_and_risk_management/error-handling-control-requirement.json" />
+              <option name="schemaVersion" value="JSON Schema 2020-12" />
+              <option name="applicationDefined" value="true" />              
+            </SchemaInfo>
+          </value>
+        </entry>
+
+        <entry key="CALM Escalation Path">
+          <value>
+            <SchemaInfo>
+              <option name="name" value="CALM Escalation Path" />
+              <option name="relativePathToSchema" value="calm/draft/2025-03/samples/traderx/control-requirement/resilience_and_risk_management/escalation-path-control-requirement.json" />
+              <option name="schemaVersion" value="JSON Schema 2020-12" />
+              <option name="applicationDefined" value="true" />              
+            </SchemaInfo>
+          </value>
+        </entry>
+
+        <entry key="CALM Failover Redundancy">
+          <value>
+            <SchemaInfo>
+              <option name="name" value="CALM Failover Redundancy" />
+              <option name="relativePathToSchema" value="calm/draft/2025-03/samples/traderx/control-requirement/resilience_and_risk_management/failover-redundancy-control-requirement.json" />
+              <option name="schemaVersion" value="JSON Schema 2020-12" />
+              <option name="applicationDefined" value="true" />              
+            </SchemaInfo>
+          </value>
+        </entry>
+
+        <entry key="CALM Incident Response">
+          <value>
+            <SchemaInfo>
+              <option name="name" value="CALM Incident Response" />
+              <option name="relativePathToSchema" value="calm/draft/2025-03/samples/traderx/control-requirement/resilience_and_risk_management/incident-response-control-requirement.json" />
+              <option name="schemaVersion" value="JSON Schema 2020-12" />
+              <option name="applicationDefined" value="true" />              
+            </SchemaInfo>
+          </value>
+        </entry>
+
+        <entry key="CALM Risk Management">
+          <value>
+            <SchemaInfo>
+              <option name="name" value="CALM Risk Management" />
+              <option name="relativePathToSchema" value="calm/draft/2025-03/samples/traderx/control-requirement/resilience_and_risk_management/risk-management-control-requirement.json" />
+              <option name="schemaVersion" value="JSON Schema 2020-12" />
+              <option name="applicationDefined" value="true" />              
+            </SchemaInfo>
+          </value>
+        </entry>
+
+        <entry key="CALM Api Rate-Limiting">
+          <value>
+            <SchemaInfo>
+              <option name="name" value="CALM Api Rate-Limiting" />
+              <option name="relativePathToSchema" value="calm/draft/2025-03/samples/traderx/control-requirement/security_access_control/api-rate-limiting-control-requirement.json" />
+              <option name="schemaVersion" value="JSON Schema 2020-12" />
+              <option name="applicationDefined" value="true" />              
+            </SchemaInfo>
+          </value>
+        </entry>
+
+        <entry key="CALM Audit Logging">
+          <value>
+            <SchemaInfo>
+              <option name="name" value="CALM Audit Logging" />
+              <option name="relativePathToSchema" value="calm/draft/2025-03/samples/traderx/control-requirement/security_access_control/audit-logging-control-requirement.json" />
+              <option name="schemaVersion" value="JSON Schema 2020-12" />
+              <option name="applicationDefined" value="true" />              
+            </SchemaInfo>
+          </value>
+        </entry>
+
+        <entry key="CALM Authentication">
+          <value>
+            <SchemaInfo>
+              <option name="name" value="CALM Authentication" />
+              <option name="relativePathToSchema" value="calm/draft/2025-03/samples/traderx/control-requirement/security_access_control/authentication-control-requirement.json" />
+              <option name="schemaVersion" value="JSON Schema 2020-12" />
+              <option name="applicationDefined" value="true" />              
+            </SchemaInfo>
+          </value>
+        </entry>
+
+        <entry key="CALM Authorization">
+          <value>
+            <SchemaInfo>
+              <option name="name" value="CALM Authorization" />
+              <option name="relativePathToSchema" value="calm/draft/2025-03/samples/traderx/control-requirement/security_access_control/authorization-control-requirement.json" />
+              <option name="schemaVersion" value="JSON Schema 2020-12" />
+              <option name="applicationDefined" value="true" />              
+            </SchemaInfo>
+          </value>
+        </entry>
+
+        <entry key="CALM Data Encryption">
+          <value>
+            <SchemaInfo>
+              <option name="name" value="CALM Data Encryption" />
+              <option name="relativePathToSchema" value="calm/draft/2025-03/samples/traderx/control-requirement/security_access_control/data-encryption-control-requirement.json" />
+              <option name="schemaVersion" value="JSON Schema 2020-12" />
+              <option name="applicationDefined" value="true" />              
+            </SchemaInfo>
+          </value>
+        </entry>
+
+        <entry key="CALM Secrets Management">
+          <value>
+            <SchemaInfo>
+              <option name="name" value="CALM Secrets Management" />
+              <option name="relativePathToSchema" value="calm/draft/2025-03/samples/traderx/control-requirement/security_access_control/secrets-management-control-requirement.json" />
+              <option name="schemaVersion" value="JSON Schema 2020-12" />
+              <option name="applicationDefined" value="true" />              
+            </SchemaInfo>
+          </value>
+        </entry>
+      </map>
+    </state>
+  </component>
+</project>

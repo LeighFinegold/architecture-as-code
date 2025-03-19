@@ -1,0 +1,11 @@
+{
+  "$schema": "https://calm.finos.org/traderx/control-requirement/throughput",
+  "$id": "https://calm.finos.org/traderx/control-configuration/020-accounts-service-throughput-policy.json",
+  "description": "Defines throughput requirements for the TraderX Accounts Service.",
+  "control-id": "CONTROL-020",
+  "name": "TraderX Accounts Service Throughput Control",
+  "expected-message-rate": {
+    "unit": "requests per second",
+    "value": 1000
+  }
+}

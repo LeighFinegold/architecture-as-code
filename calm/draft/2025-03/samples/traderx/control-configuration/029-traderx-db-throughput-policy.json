@@ -1,0 +1,11 @@
+{
+  "$schema": "https://calm.finos.org/traderx/control-requirement/throughput",
+  "$id": "https://calm.finos.org/traderx/control-configuration/029-traderx-db-throughput-policy.json",
+  "description": "Defines throughput requirements for the TraderX Database.",
+  "control-id": "CONTROL-029",
+  "name": "TraderX Database Throughput Control",
+  "expected-message-rate": {
+    "unit": "transactions per second",
+    "value": 5000
+  }
+}
