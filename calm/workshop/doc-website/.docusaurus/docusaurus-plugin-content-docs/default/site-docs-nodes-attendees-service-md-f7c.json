@@ -1,0 +1,26 @@
+{
+  "id": "nodes/attendees-service",
+  "title": "Attendees Service",
+  "description": "Node Details",
+  "source": "@site/docs/nodes/attendees-service.md",
+  "sourceDirName": "nodes",
+  "slug": "/nodes/attendees-service",
+  "permalink": "/nodes/attendees-service",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "id": "attendees-service",
+    "title": "Attendees Service"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Load Balancer",
+    "permalink": "/nodes/load-balancer"
+  },
+  "next": {
+    "title": "Advertising",
+    "permalink": "/nodes/advertising"
+  }
+}

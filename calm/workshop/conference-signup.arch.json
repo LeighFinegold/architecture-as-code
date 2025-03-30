@@ -1,0 +1,95 @@
+{
+  "nodes": [
+    {
+      "unique-id": "conference-website",
+      "node-type": "webclient",
+      "name": "Conference Website",
+      "description": "Website to sign up for a conference",
+      "interfaces": []
+    },
+    {
+      "unique-id": "load-balancer",
+      "node-type": "network",
+      "name": "Load Balancer",
+      "description": "Ingress for the Kubernetes cluster",
+      "interfaces": []
+    },
+    {
+      "unique-id": "attendees-service",
+      "node-type": "network",
+      "name": "Attendees Service",
+      "description": "Ingress for the Kubernetes cluster",
+      "interfaces": []
+    },
+    {
+      "unique-id": "advertising",
+      "node-type": "service",
+      "name": "Advertising",
+      "description": "Reviews attendees and filters based on interest to create advertisements",
+      "interfaces": []
+    },
+    {
+      "unique-id": "attendees-store",
+      "node-type": "database",
+      "name": "Attendees Store",
+      "description": "Persistent storage for attendees",
+      "interfaces": []
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "conference-website-load-balancer",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "conference-website"
+          },
+          "destination": {
+            "node": "load-balancer"
+          }
+        }
+      }
+    },
+    {
+      "unique-id": "load-balancer-attendees-service",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "load-balancer"
+          },
+          "destination": {
+            "node": "attendees-service"
+          }
+        }
+      }
+    },
+    {
+      "unique-id": "attendees-service-attendees-store",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "attendees-service"
+          },
+          "destination": {
+            "node": "attendees-store"
+          }
+        }
+      }
+    },
+    {
+      "unique-id": "advertising-attendees-service",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "advertising"
+          },
+          "destination": {
+            "node": "attendees-store"
+          }
+        }
+      }
+    }
+  ],
+  "metadata": [],
+  "$schema": "https://calm.finos.org/workshop/conference-signup.pattern.json"
+}

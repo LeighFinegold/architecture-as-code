@@ -1,0 +1,26 @@
+{
+  "id": "nodes/advertising",
+  "title": "Advertising",
+  "description": "Node Details",
+  "source": "@site/docs/nodes/advertising.md",
+  "sourceDirName": "nodes",
+  "slug": "/nodes/advertising",
+  "permalink": "/nodes/advertising",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "id": "advertising",
+    "title": "Advertising"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Attendees Service",
+    "permalink": "/nodes/attendees-service"
+  },
+  "next": {
+    "title": "Attendees Store",
+    "permalink": "/nodes/attendees-store"
+  }
+}

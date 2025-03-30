@@ -20,10 +20,39 @@ export function instantiateGenericObject(definition: object, schemaDirectory: Sc
             return placeholder;
         }
     }
-    
+
+
+    const out = {};
+    // Handle patternProperties fallback
     if (!('properties' in fullDefinition)) {
-        logger.warn('Attempting to resolve an empty definition. Returning {}.');
-        return {};
+        if ('patternProperties' in fullDefinition) {
+            const patternProperties = fullDefinition['patternProperties'];
+            if (Object.keys(patternProperties).length > 0) {
+                const patternRegexes: [string, RegExp][] = Object.keys(patternProperties).map(
+                    (p) => [p, new RegExp(p)]
+                );
+                for (const [key, val] of Object.entries(definition)) {
+                    if (key === '$ref' || key === 'properties' || key === 'required') continue;
+
+                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                    for (const [pattern, regex] of patternRegexes) {
+                        if (regex.test(key)) {
+                            const currentPath = appendPath<string>(path, key);
+                            const renderedPath = renderPath(currentPath);
+
+                            logger.debug(`${renderedPath}: Using provided implementation for pattern-matched key "${key}"`);
+
+                            // ✅ Use the value directly without trying to re-instantiate it
+                            out[key] = val;
+                            break;
+                        }
+                    }
+                }
+            }
+        } else {
+            logger.warn('Attempting to resolve an empty definition. Returning {}.');
+            return {};
+        }
     }
 
     const required = fullDefinition['required'];
@@ -31,8 +60,13 @@ export function instantiateGenericObject(definition: object, schemaDirectory: Sc
 
     logger.debug(`${renderPath(path)}: Instantiating generic object. Full definition: ${JSON.stringify(fullDefinition, null, 2)}`);
 
-    const out = {};
-    for (const [key, detail] of Object.entries(fullDefinition['properties'])) {
+
+    const properties = fullDefinition['properties'] as Record<string, any>;
+    if (!properties) {
+        return out;
+    }
+
+    for (const [key, detail] of Object.entries(properties)) {
         const currentPath = appendPath<string>(path, key);
         const renderedPath = renderPath(currentPath);
 

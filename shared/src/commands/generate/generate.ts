@@ -9,7 +9,7 @@ import {SchemaDirectory} from '../../schema-directory.js';
 import {instantiateNodes} from './components/node.js';
 import {instantiateRelationships} from './components/relationship.js';
 import {CALM_META_SCHEMA_DIRECTORY} from '../../consts.js';
-import {instantiateAllMetadata} from './components/metadata.js';
+import {instantiateAllMetadata, instantiateControls} from './components/metadata.js';
 
 let logger: winston.Logger; // defined later at startup
 
@@ -35,12 +35,12 @@ function loadFile(path: string): object {
 
 
 export async function generate(patternPath: string, debug: boolean, instantiateAll: boolean, schemaDirectoryPath?: string): Promise<CALMArchitecture> {
-    logger = initLogger(debug);
+    logger = initLogger(debug, 'generate');
     const schemaDirectory = new SchemaDirectory(debug);
 
     try {
 
-        await schemaDirectory.loadSchemas(CALM_META_SCHEMA_DIRECTORY);
+        //await schemaDirectory.loadSchemas(CALM_META_SCHEMA_DIRECTORY);
         if (schemaDirectoryPath) {
             await schemaDirectory.loadSchemas(schemaDirectoryPath);
         }

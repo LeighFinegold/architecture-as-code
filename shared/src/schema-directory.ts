@@ -19,7 +19,7 @@ export class SchemaDirectory {
      * @param debug Whether to log at debug level.
      */
     constructor(debug: boolean = false) {
-        this.logger = initLogger(debug);
+        this.logger =  initLogger(debug, SchemaDirectory.name);
     }
 
     public loadCurrentPatternAsSchema(pattern: object) {
