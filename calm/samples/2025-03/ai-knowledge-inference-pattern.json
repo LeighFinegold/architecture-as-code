@@ -1,0 +1,597 @@
+{
+  "$schema": "https://calm.finos.org/draft/2025-03/meta/calm.json",
+  "$id": "https://calm.finos.org/draft/2025-03/pattern/rag-pattern.json",
+  "title": "RAG Knowledge Base & Inference Architecture Pattern",
+  "type": "object",
+  "properties": {
+    "nodes": {
+      "type": "array",
+      "minItems": 9,
+      "prefixItems": [
+        {
+          "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/node",
+          "properties": {
+            "unique-id": {
+              "const": "saas-environment"
+            },
+            "name": {
+              "const": "SaaS Inference Environment"
+            },
+            "description": {
+              "const": "The cloud-based inference environment."
+            },
+            "node-type": {
+              "const": "system"
+            },
+            "features": {
+              "$ref": "https://github.com/finos/common-cloud-controls/blob/main/schemas/features-schema.json"
+            }
+          }
+        },
+        {
+          "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/node",
+          "properties": {
+            "unique-id": {
+              "const": "ai-model"
+            },
+            "name": {
+              "const": "AI Model"
+            },
+            "description": {
+              "const": "The AI model that performs inference."
+            },
+            "node-type": {
+              "const": "service"
+            },
+            "interfaces": {
+              "type": "array",
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "$ref": "https://calm.finos.org/draft/2024-10/meta/interface.json#/defs/host-port-interface",
+                  "unique-id": "embeddings-endpoint",
+                  "name": "Embeddings Endpoint",
+                  "description": "Provides embeddings from an inference environment."
+                },
+                {
+                  "$ref": "https://calm.finos.org/draft/2024-10/meta/interface.json#/defs/host-port-interface",
+                  "unique-id": "inference-endpoint",
+                  "name": "Inference Endpoint",
+                  "description": "Handles inference requests and responses."
+                }
+              ]
+            },
+            "features": {
+              "type": "array",
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "$ref": "https://github.com/finos/common-cloud-controls/blob/main/schemas/features-schema.json#/properties/features/items",
+                  "const": {
+                    "id": "CCC.GenAI.F01",
+                    "title": "Text-Based Model Selection",
+                    "description": "Ability to select a foundation model that excels at natural language understanding and generation tasks such as summarization, translation, text generation, question answering, and sentiment analysis."
+                  }
+                },
+                {
+                  "$ref": "https://github.com/finos/common-cloud-controls/blob/main/schemas/features-schema.json#/properties/features/items",
+                  "const": {
+                    "id": "CCC.GenAI.F11",
+                    "title": "Parameter Tuning - Stop Sequences",
+                    "description": "Ability to halt generation when a predefined sequence is encountered."
+                  }
+                }
+              ],
+              "items": {
+                "$ref": "https://github.com/finos/common-cloud-controls/blob/main/schemas/features-schema.json#/properties/features/items"
+              }
+            },
+            "required": [
+              "features"
+            ]
+          }
+        },
+        {
+          "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/node",
+          "properties": {
+            "unique-id": {
+              "const": "onprem-environment"
+            },
+            "name": {
+              "const": "On-Prem Data Processing Environment"
+            },
+            "description": {
+              "const": "The internal on-premise processing environment."
+            },
+            "node-type": {
+              "const": "system"
+            }
+          }
+        },
+        {
+          "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/node",
+          "properties": {
+            "unique-id": {
+              "const": "private-knowledge-source"
+            },
+            "name": {
+              "const": "Private Knowledge Data Source"
+            },
+            "description": {
+              "const": "Source of knowledge used for embeddings."
+            },
+            "node-type": {
+              "const": "database"
+            },
+            "features": {
+              "type": "array",
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "$ref": "https://github.com/finos/common-cloud-controls/blob/main/schemas/features-schema.json#/properties/features/items",
+                  "const": {
+                    "id": "CCC.RDMS.F01",
+                    "title": "SQL Support",
+                    "description": "Properly handle queries in the SQL language."
+                  }
+                },
+                {
+                  "$ref": "https://github.com/finos/common-cloud-controls/blob/main/schemas/features-schema.json#/properties/features/items",
+                  "const": {
+                    "id": "CCC.RDMS.F11",
+                    "title": "Disable Public Access",
+                    "description": "Prevent database from being accessed by public internet."
+                  }
+                }
+              ],
+              "items": {
+                "$ref": "https://github.com/finos/common-cloud-controls/blob/main/schemas/features-schema.json#/properties/features/items"
+              }
+            },
+            "threats": {
+              "type": "array",
+              "minItems": 4,
+              "prefixItems": [
+                {
+                  "$ref": "https://github.com/finos/common-cloud-controls/blob/main/schemas/threats-schema.json#/properties/threats/items",
+                  "const": {
+                    "id": "CCC.RDMS.TH09",
+                    "title": "Unvalidated User Input Leading to SQL Injection",
+                    "description": "Improper validation of user input could allow attackers to inject malicious SQL queries into database queries. This condition could lead to unauthorized data access, manipulation, or deletion of critical information.",
+                    "features": [
+                      "CCC.RDMS.F01"
+                    ],
+                    "mitre_technique": [
+                      "T1190",
+                      "T1071.001"
+                    ]
+                  }
+                },
+                {
+                  "$ref": "https://github.com/finos/common-cloud-controls/blob/main/schemas/threats-schema.json#/properties/threats/items",
+                  "const": {
+                    "id": "CCC.RDMS.TH10",
+                    "title": "Publicly Exposed Database Accessible Without Restriction",
+                    "description": "A relational database may be accidentally or improperly configured to allow public internet access. This condition could lead to unauthorized access, data breaches, or unintended information disclosure.",
+                    "features": [
+                      "CCC.RDMS.F11",
+                      "CCC.F23"
+                    ],
+                    "mitre_technique": [
+                      "T1133",
+                      "T1046"
+                    ]
+                  }
+                },
+                {
+                  "$ref": "https://github.com/finos/common-cloud-controls/blob/main/schemas/threats-schema.json#/properties/threats/items",
+                  "const": {
+                    "id": "CCC.RDMS.TH11",
+                    "title": "Weak Role-Based Access Control in SQL Permissions",
+                    "description": "Weakly enforced role-based access control (RBAC) settings could allow unauthorized privilege escalation within a relational database. This condition may enable low-privileged users to perform administrative actions, altering database structures or retrieving sensitive data.",
+                    "features": [
+                      "CCC.RDMS.F01",
+                      "CCC.F06",
+                      "CCC.F13"
+                    ],
+                    "mitre_technique": [
+                      "T1548",
+                      "T1078.003"
+                    ]
+                  }
+                },
+                {
+                  "$ref": "https://github.com/finos/common-cloud-controls/blob/main/schemas/threats-schema.json#/properties/threats/items",
+                  "const": {
+                    "id": "CCC.RDMS.TH12",
+                    "title": "Database Snapshots Available for Public Download",
+                    "description": "Database snapshots could be incorrectly configured to allow public download, exposing sensitive records and proprietary information to unauthorized entities.",
+                    "features": [
+                      "CCC.RDMS.F11",
+                      "CCC.F11",
+                      "CCC.F12"
+                    ],
+                    "mitre_technique": [
+                      "T1530",
+                      "T1083"
+                    ]
+                  }
+                }
+              ],
+              "items": {
+                "$ref": "https://github.com/finos/common-cloud-controls/blob/main/schemas/threats-schema.json#/properties/threats/items"
+              }
+            },
+            "controls": {
+              "type": "array",
+              "minItems": 3,
+              "prefixItems": [
+                {
+                  "$ref": "https://calm.finos.org/draft/2025-03/meta/control.json#/defs/controls",
+                  "const": {
+                    "id": "CCC.RDMS.C01",
+                    "description": "Ensure default credentials are disabled for database access.",
+                    "requirements": [
+                      {
+                        "control-requirement-url": "https://github.com/finos/common-cloud-controls/blob/main/schemas/controls-schema.json#/properties/controls/items/CCC.RDMS.C02"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "$ref": "https://calm.finos.org/draft/2025-03/meta/control.json#/defs/controls",
+                  "const": {
+                    "id": "CCC.RDMS.C02",
+                    "description": "Limit snapshot collection capabilities to trusted roles.",
+                    "requirements": [
+                      {
+                        "control-requirement-url": "https://github.com/finos/common-cloud-controls/blob/main/schemas/controls-schema.json#/properties/controls/items/CCC.RDMS.C03"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "$ref": "https://calm.finos.org/draft/2025-03/meta/control.json#/defs/controls",
+                  "const": {
+                    "id": "CCC.RDMS.C03",
+                    "description": "Ensure snapshots are only shared with explicitly authorized accounts to limit data exposure and reduce data exfiltration.",
+                    "requirements": [
+                      {
+                        "control-requirement-url": "https://github.com/finos/common-cloud-controls/blob/main/schemas/controls-schema.json#/properties/controls/items/CCC.RDMS.C05"
+                      }
+                    ]
+                  }
+                }
+              ],
+              "items": {
+                "$ref": "https://calm.finos.org/draft/2025-03/meta/control.json#/defs/controls"
+              }
+            }
+          },
+          "required": [
+            "threats",
+            "features",
+            "controls"
+          ]
+        },
+        {
+          "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/node",
+          "properties": {
+            "unique-id": {
+              "const": "data-processor"
+            },
+            "name": {
+              "const": "Data Processor and Filtering"
+            },
+            "description": {
+              "const": "Processes and filters knowledge for refinement."
+            },
+            "node-type": {
+              "const": "service"
+            }
+          }
+        },
+        {
+          "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/node",
+          "properties": {
+            "unique-id": {
+              "const": "refined-knowledge-database"
+            },
+            "name": {
+              "const": "Refined Knowledge Database"
+            },
+            "description": {
+              "const": "Stores processed and structured knowledge before vectorization."
+            },
+            "node-type": {
+              "const": "database"
+            }
+          }
+        },
+        {
+          "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/node",
+          "properties": {
+            "unique-id": {
+              "const": "vector-data-loader"
+            },
+            "name": {
+              "const": "Vector Data Loader"
+            },
+            "description": {
+              "const": "Loads refined knowledge into the vector database."
+            },
+            "node-type": {
+              "const": "service"
+            }
+          }
+        },
+        {
+          "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/node",
+          "properties": {
+            "unique-id": {
+              "const": "vector-database"
+            },
+            "name": {
+              "const": "Vector Database"
+            },
+            "description": {
+              "const": "Stores vectorized knowledge."
+            },
+            "node-type": {
+              "const": "database"
+            }
+          }
+        },
+        {
+          "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/node",
+          "properties": {
+            "unique-id": {
+              "const": "query-processor"
+            },
+            "name": {
+              "const": "Query Processing"
+            },
+            "description": {
+              "const": "Processes user queries and retrieves relevant embeddings."
+            },
+            "node-type": {
+              "const": "service"
+            },
+            "interfaces": [
+              {
+                "unique-id": "query-endpoint",
+                "name": "Query Endpoint",
+                "description": "Provides users with the ability to query the model"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "relationships": {
+      "type": "array",
+      "minItems": 9,
+      "prefixItems": [
+        {
+          "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/relationship",
+          "properties": {
+            "unique-id": {
+              "const": "onprem-composed"
+            },
+            "description": {
+              "const": "On-Prem environment composed of processing components."
+            },
+            "relationship-type": {
+              "const": {
+                "composed-of": {
+                  "container": "onprem-environment",
+                  "nodes": [
+                    "private-knowledge-source",
+                    "data-processor",
+                    "refined-knowledge-database",
+                    "vector-data-loader",
+                    "vector-database",
+                    "query-processor"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        {
+          "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/relationship",
+          "properties": {
+            "unique-id": {
+              "const": "saas-composed"
+            },
+            "description": {
+              "const": "SaaS environment composed of AI Model."
+            },
+            "relationship-type": {
+              "const": {
+                "composed-of": {
+                  "container": "saas-environment",
+                  "nodes": [
+                    "ai-model"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        {
+          "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/relationship",
+          "properties": {
+            "unique-id": {
+              "const": "private-knowledge-to-processor"
+            },
+            "description": {
+              "const": "Private Knowledge Source connects to Data Processor."
+            },
+            "relationship-type": {
+              "const": {
+                "connects": {
+                  "source": {
+                    "node": "private-knowledge-source"
+                  },
+                  "destination": {
+                    "node": "data-processor"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/relationship",
+          "properties": {
+            "unique-id": {
+              "const": "data-processor-to-refined-db"
+            },
+            "description": {
+              "const": "Data Processor stores refined knowledge in the database."
+            },
+            "relationship-type": {
+              "const": {
+                "connects": {
+                  "source": {
+                    "node": "data-processor"
+                  },
+                  "destination": {
+                    "node": "refined-knowledge-database"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/relationship",
+          "properties": {
+            "unique-id": {
+              "const": "refined-db-to-vector-loader"
+            },
+            "description": {
+              "const": "Refined Knowledge Database connects to Vector Data Loader."
+            },
+            "relationship-type": {
+              "const": {
+                "connects": {
+                  "source": {
+                    "node": "refined-knowledge-database"
+                  },
+                  "destination": {
+                    "node": "vector-data-loader"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/relationship",
+          "properties": {
+            "unique-id": {
+              "const": "vector-loader-to-vector-db"
+            },
+            "description": {
+              "const": "Vector Data Loader connects to Vector Database."
+            },
+            "relationship-type": {
+              "const": {
+                "connects": {
+                  "source": {
+                    "node": "vector-data-loader"
+                  },
+                  "destination": {
+                    "node": "vector-database"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/relationship",
+          "properties": {
+            "unique-id": {
+              "const": "vector-loader-to-ai-model"
+            },
+            "description": {
+              "const": "Vector Data Loader connects to AI Model"
+            },
+            "relationship-type": {
+              "const": {
+                "connects": {
+                  "source": {
+                    "node": "vector-data-loader"
+                  },
+                  "destination": {
+                    "node": "ai-model",
+                    "interfaces": [
+                      "embeddings-endpoint"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/relationship",
+          "properties": {
+            "unique-id": {
+              "const": "query-processing-to-vector-db"
+            },
+            "description": {
+              "const": "Query Processing retrieves relevant vectorized data from Vector Database."
+            },
+            "relationship-type": {
+              "const": {
+                "connects": {
+                  "source": {
+                    "node": "query-processing"
+                  },
+                  "destination": {
+                    "node": "vector-database"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "$ref": "https://calm.finos.org/draft/2025-03/meta/core.json#/defs/relationship",
+          "properties": {
+            "unique-id": {
+              "const": "query-processing-to-ai-model"
+            },
+            "description": {
+              "const": "Query Processing connects to AI Model"
+            },
+            "relationship-type": {
+              "const": {
+                "connects": {
+                  "source": {
+                    "node": "query-processing"
+                  },
+                  "destination": {
+                    "node": "ai-model",
+                    "interfaces": [
+                      "inference-endpoint",
+                      "embeddings-endpoint"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "required": [
+    "nodes",
+    "relationships"
+  ]
+}
