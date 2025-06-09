@@ -1,5 +1,5 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$schema": "https://calm.finos.org/release/1.0-rc1/meta/control-requirement.json",
   "$id": "https://calm.finos.org/workshop/controls/micro-segmentation.requirement.json",
   "title": "Micro-segmentation configured Kubernetes Cluster",
   "type": "object",

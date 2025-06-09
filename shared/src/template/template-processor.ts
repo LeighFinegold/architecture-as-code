@@ -61,11 +61,20 @@ export class TemplateProcessor {
 
     private cleanOutputDirectory(outputPath: string): void {
         const logger = TemplateProcessor.logger;
+
         if (fs.existsSync(outputPath)) {
-            logger.info('🗑️ Cleaning up previous generation...');
-            fs.rmSync(outputPath, { recursive: true, force: true });
+            const entries = fs.readdirSync(outputPath);
+            for (const entry of entries) {
+                if (entry === 'node_modules' || entry === '.docusaurus') {
+                    continue;
+                }
+                const fullPath = path.join(outputPath, entry);
+                fs.rmSync(fullPath, { recursive: true, force: true });
+            }
+            logger.info('🧹 Cleaned output directory (except node_modules and .docusaurus)');
+        } else {
+            fs.mkdirSync(outputPath, { recursive: true });
         }
-        fs.mkdirSync(outputPath, { recursive: true });
     }
 
     private readInputFile(inputPath: string): string {

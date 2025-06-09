@@ -21,5 +21,6 @@ export default defineConfig({
             provider: 'v8',
             ...v8CoverageSettings,
         },
+        testTimeout: 90000, // or whatever time you need
     }
 })

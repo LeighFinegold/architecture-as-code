@@ -1,5 +1,5 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$schema": "https://calm.finos.org/release/1.0-rc1/meta/control-requirement.json",
   "$id": "https://calm.finos.org/workshop/controls/permitted-connection.requirement.json",
   "title": "Permits a connection between two components in the architecture",
   "type": "object",
