@@ -16,18 +16,23 @@ describe('TemplateCalmFileDereferencer', () => {
             [
                 'https://calm.finos.org/traderx/flow/load-list-of-accounts',
                 path.resolve('data/load-list-of-accounts.json')
+            ],
+            [
+                'https://calm.finos.org/traderx/control/some-control',
+                path.resolve('data/example-control.json')
             ]
         ]);
 
         const mockResolver = new InMemoryResolver({
             [path.resolve('data/add-update-account.json')]: { flow: 'Add Update Account Content' },
-            [path.resolve('data/load-list-of-accounts.json')]: { flow: 'Load List of Accounts Content' }
+            [path.resolve('data/load-list-of-accounts.json')]: { flow: 'Load List of Accounts Content' },
+            [path.resolve('data/example-control.json')]: { control: 'blah' }
         });
 
         dereferencer = new TemplateCalmFileDereferencer(urlFileMapping, mockResolver);
     });
 
-    describe('replaceUrlsWithFilePaths', () => {
+    describe('replaceUrlsWithRefs', () => {
         it('should replace URLs with file content', async () => {
             const jsonDoc = `{
                 "flows": [
@@ -119,6 +124,19 @@ describe('TemplateCalmFileDereferencer', () => {
         it('should handle empty JSON arrays', async () => {
             const resolvedJson = await dereferencer.dereferenceCalmDoc('[]');
             expect(JSON.parse(resolvedJson)).toEqual([]);
+        });
+
+        it('should handle control-config-url specially', async () => {
+            const jsonDoc = `{
+                "control-config-url": "https://calm.finos.org/traderx/control/some-control"
+            }`;
+
+            const expected = `{
+                "control-config-url": { "control": "blah" }
+            }`;
+
+            const resolvedJson = await dereferencer.dereferenceCalmDoc(jsonDoc);
+            expect(JSON.parse(resolvedJson)).toEqual(JSON.parse(expected));
         });
     });
 });

@@ -458,7 +458,7 @@
     "https://calm.finos.org/traderx/flow/add-update-account",
     "https://calm.finos.org/traderx/flow/load-list-of-accounts",
     "https://calm.finos.org/traderx/flow/load-positions",
-    "https://calm.finos.org/traderx/flow/submit-trade-ticket/submit-trade-ticket",
+    "https://calm.finos.org/traderx/flow/submit-trade-ticket",
     "https://calm.finos.org/traderx/flow/new-trade",
     "https://calm.finos.org/traderx/flow/update-trade"
   ]

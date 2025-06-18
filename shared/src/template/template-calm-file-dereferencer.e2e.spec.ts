@@ -16,9 +16,12 @@ describe('End-to-End Dereferencing Test', () => {
 
         urlFileMapping = new Map<string, string>([
             ['https://calm.finos.org/traderx/flow/add-update-account', path.join(basePath, 'flows/add-update-account/add-update-account.json')],
+            ['https://calm.finos.org/traderx/control/add-update-account-control-configuration', path.join(basePath, 'flows/add-update-account/add-update-account-control-configuration.json')],
+            ['https://calm.finos.org/traderx/control/trade-processing-control-configuration', path.join(basePath, 'flows/trade-processing/trade-processing-control-configuration.json')],
             ['https://calm.finos.org/traderx/flow/load-list-of-accounts', path.join(basePath, 'flows/load-list-of-accounts/load-list-of-accounts.json')],
             ['https://calm.finos.org/traderx/flow/load-positions', path.join(basePath, 'flows/load-positions/load-positions.json')],
-            ['https://calm.finos.org/traderx/flow/submit-trade-ticket/submit-trade-ticket', path.join(basePath, 'flows/submit-trade-ticket/submit-trade-ticket.json')],
+            ['https://calm.finos.org/traderx/flow/submit-trade-ticket', path.join(basePath, 'flows/submit-trade-ticket/submit-trade-ticket.json')],
+            ['https://calm.finos.org/traderx/control/submit-trade-ticket-control-configuration', path.join(basePath, 'flows/submit-trade-ticket/submit-trade-ticket-control-configuration.json')],
             ['https://calm.finos.org/traderx/flow/new-trade', path.join(basePath, 'flows/trade-processing/trade-processing-new-trade.json')],
             ['https://calm.finos.org/traderx/flow/update-trade', path.join(basePath, 'flows/trade-processing/trade-processing-update-trade.json')]
         ]);

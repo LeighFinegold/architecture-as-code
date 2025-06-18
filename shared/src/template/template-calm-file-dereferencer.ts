@@ -23,9 +23,17 @@ export class TemplateCalmFileDereferencer {
             return data.map(this.replaceUrlsWithRefs.bind(this));
         } else if (typeof data === 'object' && data !== null) {
             return Object.fromEntries(
-                Object.entries(data).map(([key, value]) =>
-                    key === '$id' || key === '$schema' ? [key, value] : [key, this.replaceUrlsWithRefs(value)]
-                )
+                Object.entries(data).map(([key, value]) => {
+                    if (key === '$id' || key === '$schema') {
+                        return [key, value];
+                    } else if (key === 'control-config-url' && typeof value === 'string') {
+                        const mapped = this.urlFileMapping.get(value);
+                        const refTarget = mapped ?? value;
+                        return [key, { $ref: refTarget }];
+                    } else {
+                        return [key, this.replaceUrlsWithRefs(value)];
+                    }
+                })
             );
         }
         return data;

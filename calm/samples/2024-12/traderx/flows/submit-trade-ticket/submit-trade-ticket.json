@@ -49,7 +49,7 @@
       "requirements": [
         {
           "control-requirement-url": "https://calm.finos.org/traderx/control/flow-sla-control-requirement",
-          "control-config-url": "https://calm.finos.org/traderx/flow/submit-trade-ticket"
+          "control-config-url": "https://calm.finos.org/traderx/control/submit-trade-ticket-control-configuration"
         }
       ]
     }
