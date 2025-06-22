@@ -8,7 +8,8 @@ This demo showcases the **CALM** approach in action. Designed to help you get st
 - Install the CALM CLI
 - Generate a concrete architecture from a pattern
 - Visualise your architecture using CALM Hub
-- Docify Your Architecture
+- Docify your architecture
+- Add Flows to your architecture
 
 ## 🚀 Prerequisites
 
@@ -218,7 +219,7 @@ info [_TemplateEngine]:     Formatting output as json
 In this case the warnings are related to placeholder values in the architecture, which is expected since we used a
 pattern with placeholders and haven't replaced them with real values. You can safely ignore these warnings for now.
 
-## 💻 How to visualise your architecture using CALM Hub
+## 🏞 How to visualise your architecture using CALM Hub
 
 Looking at JSON is never easy, wouldn't it be great if we could visualise your architecture? Let's head back to CALM Hub
 and navigate to the Visualizer tab.
@@ -341,5 +342,6 @@ Give it a few seconds to start up, and then open your browser to http://localhos
 website with your architecture visualised like below.
 ![CALM Docify Website](img/docify.png)
 
+## 📚 Add Flows to your architecture
 
 
