@@ -59,6 +59,8 @@ export type CalmComposedOfRelationshipSchema = {
     nodes: string[];
 };
 
+export type CalmOptionTypeSchema = CalmDecisionSchema[]
+
 export type CalmDecisionSchema = {
     description: string;
     nodes: string[];
@@ -67,12 +69,14 @@ export type CalmDecisionSchema = {
     metadata?: string[];
 };
 
+export type CalmOptionsRelationshipSchema = CalmOptionTypeSchema[];
+
 export type CalmRelationshipTypeSchema = {
     interacts?: CalmInteractsRelationshipSchema;
     connects?: CalmConnectsRelationshipSchema;
     'deployed-in'?: CalmDeployedInRelationshipSchema;
     'composed-of'?: CalmComposedOfRelationshipSchema;
-    options?: CalmDecisionSchema[];
+    options?: CalmOptionsRelationshipSchema;
 };
 
 export type CalmProtocolSchema =

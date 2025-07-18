@@ -10,15 +10,15 @@ export class CalmControlDetail {
     static fromJson(data: CalmControlDetailSchema): CalmControlDetail {
         if ('control-config-url' in data) {
             return new CalmControlDetail(
-                data['control-requirement-url'],
-                data['control-config-url'],
+                data['requirement-url'],
+                data['config-url'],
                 undefined
             );
         } else {
             return new CalmControlDetail(
-                data['control-requirement-url'],
+                data['requirement-url'],
                 undefined,
-                data['control-config']
+                data['config']
             );
         }
     }
