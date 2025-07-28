@@ -1,6 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { TemplatePathExtractor } from './template-path-extractor';
 
+//This simulates the eventual cleaner model constructed by calm template after dereferencing
+//With controls; requirement-url and config are flattened to requirement. If generated from a control-url that will also be added. This will allow for controls.security.requirements[0].requirement-url
+//With interfaces; the definition-url is moved inline the interface configuration.
+//With details just embedding the referenced detailed-architecture inline to allow for details.nodes etc.
 const architecture = {
     $schema: 'https://calm.finos.org/workshop/account-system.pattern.json',
     metadata: [{ owner: 'Platform Team' }],
