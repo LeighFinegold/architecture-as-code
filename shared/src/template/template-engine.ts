@@ -5,6 +5,8 @@ import {ITemplateBundleLoader} from './template-bundle-file-loader.js';
 import { initLogger } from '../logger.js';
 import fs from 'fs';
 import path from 'path';
+import { setupWidgetEngine } from '../widget/widget-engine';
+import { tableWidget } from '../widget/table'; // adjust path if needed
 
 
 export class TemplateEngine {
@@ -16,7 +18,14 @@ export class TemplateEngine {
     constructor(fileLoader: ITemplateBundleLoader, transformer: CalmTemplateTransformer) {
         this.config = fileLoader.getConfig();
         this.transformer = transformer;
+
+        // 👇 Register widget framework and default widgets
+        setupWidgetEngine([
+            { widget: tableWidget, folder: path.join(__dirname, '../widget/table') }
+        ]);
+
         this.templates = this.compileTemplates(fileLoader.getTemplateFiles());
+
         this.registerTemplateHelpers();
     }
 

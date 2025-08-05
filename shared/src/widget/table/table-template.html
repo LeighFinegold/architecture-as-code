@@ -1,0 +1,17 @@
+<div class="table-container">
+    <table>
+        {{#if headers}}
+        <thead>
+        <tr>
+            <th>Key</th>
+            <th>Value</th>
+        </tr>
+        </thead>
+        {{/if}}
+        <tbody>
+        {{#each rows}}
+        {{> row-template.html this }}
+        {{/each}}
+        </tbody>
+    </table>
+</div>
