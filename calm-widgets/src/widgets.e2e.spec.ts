@@ -205,4 +205,69 @@ describe('Widgets E2E - Handlebars Integration', () => {
             expect(result.trim()).toBe(expected);
         });
     });
+
+    describe('Block Architecture Widget', () => {
+        // Core functionality tests - consolidated from multiple basic scenarios
+        it('renders basic architecture structures (empty, single system, multiple systems)', () => {
+            const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'basic-structures');
+            const compiled = handlebars.compile(template);
+            const result = compiled(context);
+            expect(result.trim()).toBe(expected);
+        });
+
+        // Interface rendering variations - consolidated from interfaces-off, interfaces-on-both, interfaces-on-one-side
+        it('handles all interface rendering variations in one comprehensive test', () => {
+            const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'interface-variations');
+            const compiled = handlebars.compile(template);
+            const result = compiled(context);
+            expect(result.trim()).toBe(expected);
+        });
+
+        // Complex real-world scenarios - keep these as they demonstrate practical use cases
+        it('renders enterprise bank trading system with mixed communication patterns', () => {
+            const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'enterprise-bank-trading');
+            const compiled = handlebars.compile(template);
+            const result = compiled(context);
+            expect(result.trim()).toBe(expected);
+        });
+
+        it('renders enterprise bank with clickable navigation pattern and progressive detail levels', () => {
+            const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'enterprise-bank-navigation');
+            const compiled = handlebars.compile(template);
+            const result = compiled(context);
+            expect(result.trim()).toBe(expected);
+        });
+
+        // Complex architecture test - keep as it tests advanced scenarios
+        it('renders a complex architecture with nested relationships', () => {
+            const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'complex-architecture');
+            const compiled = handlebars.compile(template);
+            const result = compiled(context);
+            expect(result.trim()).toBe(expected);
+        });
+
+        // Large topology - keep for performance testing
+        it('renders large topology with many nodes and connections efficiently', () => {
+            const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'large-topology');
+            const compiled = handlebars.compile(template);
+            const result = compiled(context);
+            expect(result.trim()).toBe(expected);
+        });
+
+        it('applies domain interaction diagram', () => {
+            const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'domain-interaction');
+            const compiled = handlebars.compile(template);
+            const result = compiled(context);
+            expect(result.trim()).toBe(expected);
+        });
+
+        // New focus flows test - demonstrates flow-based filtering
+        it('filters architecture based on specific flows', () => {
+            const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'focus-flows');
+            const compiled = handlebars.compile(template);
+            const result = compiled(context);
+            expect(result.trim()).toBe(expected);
+        });
+
+    });
 });

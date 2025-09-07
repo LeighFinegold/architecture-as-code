@@ -1,0 +1,262 @@
+# Block Architecture — Navigation Example (Permutation Test)
+
+This page demonstrates **Mermaid diagrams with clickable nodes** and many permutations.
+⚠️ Note: GitHub issue rendering ignores `click`, but if you copy/paste into a `.mmd` file or a markdown site with Mermaid enabled, clicking works.
+
+---
+
+## 0) Baseline (Flat, neighbors, with interfaces)
+
+{{block-architecture this
+                     render-interfaces=true
+                     focus-nodes="trade-svc,trading-ui,trading-db,message-bus"
+                     include-children="all"
+                     include-containers="none"
+                     edges="connected"
+                     link-prefix="#"
+                     link-map='{
+    "trade-svc":"#trade-service",
+    "trade-svc__iface__api":"#trade-service-api",
+    "trade-svc__iface__jdbc":"#trade-service-storage",
+    "trade-svc__iface__events":"#trade-service-events",
+    "trading-ui":"#trading-ui",
+    "trading-db":"#trading-db",
+    "message-bus":"#message-bus"
+  }'
+}}
+
+---
+
+## 1) Flat, neighbors, **no** interfaces
+
+{{block-architecture this
+                     render-interfaces=false
+                     focus-nodes="trade-svc,trading-ui,trading-db,message-bus"
+                     include-children="all"
+                     include-containers="none"
+                     edges="connected"
+                     link-prefix="#"
+                     link-map='{
+    "trade-svc":"#trade-service",
+    "trading-ui":"#trading-ui",
+    "trading-db":"#trading-db",
+    "message-bus":"#message-bus"
+  }'
+}}
+
+---
+
+## 2) Immediate container context (parents), neighbors, with interfaces
+
+{{block-architecture this
+                     render-interfaces=true
+                     focus-nodes="trade-svc,trading-ui,trading-db,message-bus"
+                     include-children="all"
+                     include-containers="parents"
+                     edges="connected"
+                     link-prefix="#"
+                     link-map='{
+    "trade-svc":"#trade-service",
+    "trade-svc__iface__api":"#trade-service-api",
+    "trade-svc__iface__jdbc":"#trade-service-storage",
+    "trade-svc__iface__events":"#trade-service-events",
+    "trading-ui":"#trading-ui",
+    "trading-db":"#trading-db",
+    "message-bus":"#message-bus"
+  }'
+}}
+
+---
+
+## 3) Parents, neighbors, **no interfaces** (cleaner context)
+
+{{block-architecture this
+                     render-interfaces=false
+                     focus-nodes="trade-svc,trading-ui,trading-db,message-bus"
+                     include-children="all"
+                     include-containers="parents"
+                     edges="connected"
+                     link-prefix="#"
+                     link-map='{
+    "trade-svc":"#trade-service",
+    "trading-ui":"#trading-ui",
+    "trading-db":"#trading-db",
+    "message-bus":"#message-bus"
+  }'
+}}
+
+---
+
+## 4) All containers (ecosystem shells), neighbors, with interfaces
+
+{{block-architecture this
+                     render-interfaces=true
+                     focus-nodes="trade-svc,trading-ui,trading-db,message-bus"
+                     include-children="all"
+                     include-containers="all"
+                     edges="connected"
+                     link-prefix="#"
+                     link-map='{
+    "trade-svc":"#trade-service",
+    "trade-svc__iface__api":"#trade-service-api",
+    "trade-svc__iface__jdbc":"#trade-service-storage",
+    "trade-svc__iface__events":"#trade-service-events",
+    "trading-ui":"#trading-ui",
+    "trading-db":"#trading-db",
+    "message-bus":"#message-bus"
+  }'
+}}
+
+---
+
+## 5) All containers (ecosystem shells), neighbors, **no interfaces**
+
+{{block-architecture this
+                     render-interfaces=false
+                     focus-nodes="trade-svc,trading-ui,trading-db,message-bus"
+                     include-children="all"
+                     include-containers="all"
+                     edges="connected"
+                     link-prefix="#"
+                     link-map='{
+    "trade-svc":"#trade-service",
+    "trading-ui":"#trading-ui",
+    "trading-db":"#trading-db",
+    "message-bus":"#message-bus"
+  }'
+}}
+
+---
+
+## 7) System slice (explicit): focus trading-system, children + neighbors
+
+{{block-architecture this
+                     render-interfaces=false
+                     focus-nodes="trading-system"
+                     include-children="all"
+                     include-containers="none"
+                     edges="connected"
+                     link-prefix="#"
+                     link-map='{
+    "trading-ui":"#trading-ui",
+    "trade-svc":"#trade-service",
+    "trading-db":"#trading-db"
+  }'
+}}
+
+> **Explicit system view**: `include-containers="none"`, `include-children="all"`, `edges="connected"`.
+
+---
+
+## 8) Details slice (explicit): focus trade-svc, interfaces + neighbors
+
+{{block-architecture this
+                     render-interfaces=true
+                     focus-nodes="trade-svc"
+                     include-children="all"
+                     include-containers="none"
+                     edges="connected"
+                     link-prefix="#"
+                     link-map='{
+    "trade-svc":"#trade-service",
+    "trade-svc__iface__api":"#trade-service-api",
+    "trade-svc__iface__jdbc":"#trade-service-storage",
+    "trade-svc__iface__events":"#trade-service-events",
+    "trading-ui":"#trading-ui",
+    "trading-db":"#trading-db",
+    "message-bus":"#message-bus"
+  }'
+}}
+
+> **Explicit details view**: flat + interfaces + neighbors.
+
+---
+
+## 9) Focus on **UI** only, flat, neighbors, interfaces off (just to vary)
+
+{{block-architecture this
+                     render-interfaces=false
+                     focus-nodes="trading-ui"
+                     include-children="all"
+                     include-containers="none"
+                     edges="connected"
+                     link-prefix="#"
+                     link-map='{
+    "trading-ui":"#trading-ui",
+    "trade-svc":"#trade-service"
+  }'
+}}
+
+---
+
+## 10) Focus on **DB** only, parents containers, neighbors, with interfaces
+
+{{block-architecture this
+                     render-interfaces=true
+                     focus-nodes="trading-db"
+                     include-children="all"
+                     include-containers="parents"
+                     edges="connected"
+                     link-prefix="#"
+                     link-map='{
+    "trading-db":"#trading-db",
+    "trading-db__iface__sql":"#trading-db__iface__sql",
+    "trade-svc":"#trade-service"
+  }'
+}}
+
+---
+
+## 11) Flat slice with **edges off** (structure with attachments only)
+
+{{block-architecture this
+                     render-interfaces=true
+                     focus-nodes="trade-svc,trading-ui,trading-db,message-bus"
+                     include-children="all"
+                     include-containers="none"
+                     edges="none"
+                     link-prefix="#"
+                     link-map='{
+    "trade-svc":"#trade-service",
+    "trade-svc__iface__api":"#trade-service-api",
+    "trade-svc__iface__jdbc":"#trade-service-storage",
+    "trade-svc__iface__events":"#trade-service-events",
+    "trading-ui":"#trading-ui",
+    "trading-db":"#trading-db",
+    "message-bus":"#message-bus"
+  }'
+}}
+
+---
+
+# Details (Anchor Targets)
+
+## Trading System
+Some notes about the **Trading System**.
+
+## Position System
+Some notes about the **Position System**.
+
+## Messaging System
+Some notes about the **Messaging System**.
+
+## Trading UI
+Details about **Trading UI**.
+
+## Trade Service
+Details about **Trade Service**.
+
+### Trade Service API
+Details about the **API interface**.
+
+### Trade Service Storage
+Details about the **storage interface**.
+
+### Trade Service Events
+Details about the **events interface**.
+
+## Trading DB
+Details about **Trading DB**.
+
+## Message Bus
+Details about **Message Bus**.

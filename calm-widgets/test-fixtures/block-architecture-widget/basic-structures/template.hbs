@@ -1,0 +1,29 @@
+## Basic Architecture Structures
+
+### Structure container composition with no edges
+{{block-architecture this include-containers="all"
+                     edges="none"
+}}
+
+### Single System Composition (with seeded edges i.e. only shows relationships contained in focused nodes)
+{{block-architecture this
+                     include-containers="all"
+                     focus-nodes="system-a"
+                     include-children="all"
+                     edges="seeded"
+}}
+
+
+### Single System Composition (with all connected edges)
+{{block-architecture this
+                     include-containers="all"
+                     focus-nodes="system-a"
+                     include-children="all"
+                     edges="connected"
+}}
+
+### Multiple Systems with Connections
+{{block-architecture this
+                     include-containers="all"
+                     edges="connected"
+}}

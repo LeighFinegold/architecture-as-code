@@ -1,0 +1,19 @@
+## Without Interfaces (node-to-node connections)
+{{block-architecture this
+                     render-interfaces=false
+                     include-containers="none"
+                     edges="connected"
+}}
+
+## With Interfaces on Both Sides
+{{block-architecture this
+                     render-interfaces=true
+                     include-containers="none"
+                     edges="connected"
+}}
+
+## Interface and containers
+{{block-architecture this
+                     render-interfaces=true
+                     include-containers="all"
+}}

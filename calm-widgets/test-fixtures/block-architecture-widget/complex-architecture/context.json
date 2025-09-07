@@ -1,0 +1,63 @@
+{
+  "nodes": [
+    {
+      "unique-id": "web-app",
+      "node-type": "system",
+      "name": "Web Application",
+      "description": "Main web application"
+    },
+    {
+      "unique-id": "frontend",
+      "node-type": "service",
+      "name": "Frontend",
+      "description": "User interface"
+    },
+    {
+      "unique-id": "backend",
+      "node-type": "service",
+      "name": "Backend API",
+      "description": "REST API service"
+    },
+    {
+      "unique-id": "docker-container",
+      "node-type": "container",
+      "name": "Docker Container",
+      "description": "Application runtime"
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "r1",
+      "relationship-type": {
+        "composed-of": {
+          "container": "web-app",
+          "nodes": ["frontend", "backend"]
+        }
+      }
+    },
+    {
+      "unique-id": "r2",
+      "relationship-type": {
+        "deployed-in": {
+          "container": "docker-container",
+          "nodes": ["frontend", "backend"]
+        }
+      }
+    },
+    {
+      "unique-id": "r3",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "frontend" },
+          "destination": { "node": "backend" }
+        }
+      },
+      "description": "API calls"
+    }
+  ],
+  "metadata": {},
+  "controls": {},
+  "flows": [],
+  "adrs": []
+}
+

@@ -1,0 +1,19 @@
+{{#each nodes}}
+    {{#if (lookup ../linkMap id)}}
+        click {{id}} "{{lookup ../linkMap id}}" "Jump to {{label}}"
+    {{else if ../linkPrefix}}
+        click {{id}} "{{../linkPrefix}}{{id}}" "Jump to {{label}}"
+    {{/if}}
+    {{#each interfaces}}
+        {{#if (lookup ../../linkMap id)}}
+            click {{id}} "{{lookup ../../linkMap id}}" "Jump to {{label}}"
+        {{else if ../../linkPrefix}}
+            click {{id}} "{{../../linkPrefix}}{{id}}" "Jump to {{label}}"
+        {{/if}}
+    {{/each}}
+{{/each}}
+{{#if (gt (length containers) 0)}}
+    {{#each containers}}
+        {{> click-links.hbs this linkPrefix=../linkPrefix linkMap=../linkMap}}
+    {{/each}}
+{{/if}}
