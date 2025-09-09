@@ -1,1 +1,4 @@
-{    "https://calm.finos.org/docuflow/flow/document-upload" : "flows/flow-document-upload.json"}
+{
+  "https://calm.finos.org/getting-started/controls/permitted-connection.requirement.json#123-ABC" : "sample-control.json",
+  "https://calm.finos.org/getting-started/controls/test.config.json#234-ABC": "sample-control.json"
+}

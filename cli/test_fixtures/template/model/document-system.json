@@ -92,5 +92,16 @@
         }
       ]
     }
-  ]
+  ],
+  "controls": {
+    "security": {
+      "description": "Security Controls for the connection",
+      "requirements": [
+        {
+          "requirement-url": "https://calm.finos.org/getting-started/controls/permitted-connection.requirement.json#123-ABC",
+          "config-url": "https://calm.finos.org/getting-started/controls/test.config.json#234-ABC"
+        }
+      ]
+    }
+  }
 }

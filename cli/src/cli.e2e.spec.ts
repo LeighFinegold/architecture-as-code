@@ -380,13 +380,13 @@ describe('CLI Integration Tests', () => {
         const fixtureDir = path.resolve(__dirname, '../test_fixtures/template');
         const testModelPath = path.join(fixtureDir, 'model/document-system.json');
         const localDirectory = path.join(fixtureDir, 'model/url-to-file-directory.json');
-        const templatePath = path.join(fixtureDir, 'self-provided/single-template.hbs');
-        const expectedOutputPath = path.join(fixtureDir, 'expected-output/single-template-output.md');
+        const templatePath = path.join(fixtureDir, 'self-provided/single-docify-template.hbs');
+        const expectedOutputPath = path.join(fixtureDir, 'expected-output/single-docify-template-output.md');
         const outputDir = path.join(tempDir, 'output-single-template');
         const outputFile = path.join(outputDir, 'simple-template-output.md');
 
         await run(
-            calm(), ['docify', '--architecture', testModelPath, '--template', templatePath, '--output', outputFile, '--url-to-local-file-mapping', localDirectory]
+            calm(), ['docify', '--architecture', testModelPath, '--template', templatePath, '--output', outputFile, '-u', localDirectory]
         );
 
         expect(fs.existsSync(outputFile)).toBe(true);
