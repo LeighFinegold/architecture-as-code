@@ -32,6 +32,7 @@
 
   <div class="tabs" role="tablist" aria-label="Preview Tabs">
     <button class="tab-button active" role="tab" data-target="docify-panel">Docify</button>
+    <button class="tab-button" role="tab" data-target="template-panel">Template</button>
     <button class="tab-button" role="tab" data-target="model-panel">Model</button>
   </div>
 
@@ -39,6 +40,10 @@
 
     <div id="docify-panel" class="tab-content active">
       <div id="docify-content"></div>
+    </div>
+
+    <div id="template-panel" class="tab-content">
+      <div id="template-content"></div>
     </div>
 
     <div id="model-panel" class="tab-content">
@@ -216,6 +221,62 @@
         // Auto-refresh model data when selection changes (if model tab is active)
         if (isModelActive()) {
           setTimeout(requestModelData, 100); // Small delay to ensure selection is processed
+        }
+      }
+    });
+  })();
+  </script>
+
+  <!-- 6) Template tab: display the underlying template used for docify -->
+  <script nonce="{{nonce}}">
+  (function(){
+    var vscodeApi = window.__vscodeApi || (typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi() : null);
+
+    function isTemplateActive(){
+      var panel = document.getElementById('template-panel');
+      return panel && panel.classList.contains('active');
+    }
+
+    function requestTemplateData(){
+      if (vscodeApi && vscodeApi.postMessage) {
+        vscodeApi.postMessage({ type:'requestTemplateData' });
+      }
+    }
+
+    var templateButton = Array.prototype.find.call(document.querySelectorAll('.tab-button'), function(b){
+      return b.getAttribute('data-target') === 'template-panel';
+    });
+    if (templateButton) {
+      templateButton.addEventListener('click', function(){
+        setTimeout(requestTemplateData, 0); // run after tab becomes active
+      });
+    }
+
+    window.addEventListener('message', function(ev){
+      var msg = ev.data || {};
+      var content = document.getElementById('template-content');
+      function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
+
+      if (msg.type === 'templateData') {
+        if (!content) return;
+        if (msg.data) {
+          var templateStr = msg.data.content || '';
+          var templateName = msg.data.name || 'Unknown Template';
+          var selectedId = msg.data.selectedId || 'none';
+          
+          content.innerHTML = 
+            '<div style="padding:12px;border-bottom:1px solid rgba(0,0,0,0.1);background:var(--vscode-editor-background);font-size:13px;">' +
+            '<strong>Template:</strong> ' + esc(templateName) + '<br/>' +
+            '<strong>Selection:</strong> ' + esc(selectedId) +
+            '</div>' +
+            '<pre style="font-family:monospace;font-size:12px;white-space:pre-wrap;margin:0;padding:12px;overflow:auto;">'+esc(templateStr)+'</pre>';
+        } else {
+          content.innerHTML = '<div style="color:var(--vscode-editorWarning-foreground);padding:12px;">No template data available</div>';
+        }
+      } else if (msg.type === 'select') {
+        // Auto-refresh template data when selection changes (if template tab is active)
+        if (isTemplateActive()) {
+          setTimeout(requestTemplateData, 100); // Small delay to ensure selection is processed
         }
       }
     });

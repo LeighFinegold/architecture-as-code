@@ -1,5 +1,13 @@
-# Node Focus: {{focused-node-id}}
+# {{nodes["{{focused-node-id}}"].name}}
 
-This documentation focuses on a specific node and its immediate connections.
+## Overview
+{{table nodes["{{focused-node-id}}"] orientation="vertical" columns="unique-id,name, description, node-type"}}
 
+## Architecture 
 {{block-architecture focus-nodes="{{focused-node-id}}"}}
+
+## Related Nodes
+{{related-nodes node-id="{{focused-node-id}}" }}
+
+## Interface View
+{{block-architecture focus-nodes="{{focused-node-id}}" render-interfaces="true" edges="none" include-containers="none"}}

@@ -96,6 +96,9 @@ export class CalmPreviewPanel {
         } else if (msg.type === 'requestModelData') {
           this.output.appendLine('[preview] requestModelData received')
           this.handleRequestModelData()
+        } else if (msg.type === 'requestTemplateData') {
+          this.output.appendLine('[preview] requestTemplateData received')
+          this.handleRequestTemplateData()
         } else if (msg.type === 'log' && msg.message) {
           this.output.appendLine(`[webview] ${msg.message}`)
         } else if (msg.type === 'error' && msg.message) {
@@ -285,6 +288,62 @@ export class CalmPreviewPanel {
       this.output.appendLine('[preview] Error reading model data: ' + String(error))
       this.panel.webview.postMessage({ type: 'modelData', data: null })
     }
+  }
+
+  private async handleRequestTemplateData() {
+    try {
+      // Get the current template content based on selection
+      const templateContent = await this.generateTemplateContent(this.lastSelectedId)
+      const templateName = this.getTemplateNameForSelection(this.lastSelectedId)
+      
+      this.panel.webview.postMessage({ 
+        type: 'templateData', 
+        data: {
+          content: templateContent,
+          name: templateName,
+          selectedId: this.lastSelectedId || 'none'
+        }
+      })
+      this.output.appendLine(`[preview] Sent template data: ${templateName} for selection: ${this.lastSelectedId || 'none'}`)
+    } catch (error) {
+      this.output.appendLine('[preview] Error reading template data: ' + String(error))
+      this.panel.webview.postMessage({ type: 'templateData', data: null })
+    }
+  }
+
+  private getTemplateNameForSelection(selectedId?: string): string {
+    if (!selectedId) {
+      return 'default-template.hbs'
+    }
+
+    // Handle group selections
+    if (selectedId.startsWith('group:')) {
+      return 'default-template.hbs'
+    }
+
+    // For individual items, determine the type
+    if (this.lastData?.graph) {
+      const graph = this.lastData.graph
+
+      // Check if it's a node
+      const isNode = graph.nodes?.some(n => n.id === selectedId)
+      if (isNode) {
+        return 'node-focus-template.hbs'
+      }
+
+      // Check if it's an edge (relationship or flow)
+      const edge = graph.edges?.find(e => e.id === selectedId)
+      if (edge) {
+        if (edge.type === 'flow') {
+          return 'flow-focus-template.hbs'
+        } else {
+          return 'relationship-focus-template.hbs'
+        }
+      }
+    }
+
+    // Fallback
+    return 'default-template.hbs'
   }
 
   private filterModelDataBySelection(fullModelData: any, selectedId?: string): any {

@@ -1,5 +1,15 @@
-# Relationship Focus: {{focused-relationship-id}}
+# {{focused-relationship-id}}"
 
-This documentation focuses on a specific relationship and its connected nodes.
+# {{relationships["{{focused-relationship-id}}"].name}}
 
+## Overview
+{{table relationships["{{focused-relationship-id}}"] orientation="vertical" columns="unique-id,name, description"}}
+
+## Architecture 
 {{block-architecture focus-relationships="{{focused-relationship-id}}"}}
+
+## Related Nodes
+{{related-nodes relationship-id="{{focused-relationship-id}}" }}
+
+## Interface View
+{{block-architecture focus-relationships="{{focused-relationship-id}}" render-interfaces="true" edges="none" include-containers="none"}}
