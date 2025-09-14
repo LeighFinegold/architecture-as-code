@@ -178,6 +178,17 @@
       } else if (msg.type === 'docifyError') {
         docifyRunning = false;
         if (content) content.innerHTML = '<div style="color:var(--vscode-editorError-foreground)">Error: '+esc(msg.message)+'</div>';
+      } else if (msg.type === 'refreshDocifyIfActive') {
+        // Auto-refresh docify if the docify tab is currently active
+        if (vscodeApi && vscodeApi.postMessage) {
+          try { vscodeApi.postMessage({ type:'log', message:'docify-auto-refresh-check: isActive=' + isDocifyActive() }); } catch(e){}
+        }
+        if (isDocifyActive()) {
+          if (vscodeApi && vscodeApi.postMessage) {
+            try { vscodeApi.postMessage({ type:'log', message:'docify-auto-refresh-triggered' }); } catch(e){}
+          }
+          setTimeout(triggerDocify, 100); // Small delay to ensure selection is processed
+        }
       }
     });
   })();

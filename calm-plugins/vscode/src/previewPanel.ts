@@ -16,6 +16,8 @@ export class CalmPreviewPanel {
   private revealInEditorHandlers: Array<(id: string) => void> = []
   private selectHandlers: Array<(id: string) => void> = []
   private ready = false
+  private currentSelectedId: string | undefined = undefined  // Track current selection
+  private getCurrentTreeSelection: (() => string | undefined) | undefined = undefined  // Function to get TreeView selection
   private lastData:
     | {
       graph: GraphData
@@ -86,8 +88,8 @@ export class CalmPreviewPanel {
         } else if (msg.type === 'saveToggles' && msg.toggles && this.currentUri) {
           try { (this.context as any).workspaceState?.update?.(this.togglesKey(this.currentUri), msg.toggles) } catch { }
         } else if (msg.type === 'runDocify') {
-          this.output.appendLine('[preview] runDocify received; templatePath=' + String(msg.templatePath || 'auto'))
-          this.handleRunDocify(msg.templatePath).catch(e => {
+          this.output.appendLine('[preview] runDocify received; templatePath=' + String(msg.templatePath || 'auto') + '; selectedId=' + String(this.currentSelectedId || 'none'))
+          this.handleRunDocify(msg.templatePath, this.currentSelectedId).catch(e => {
             this.panel.webview.postMessage({ type: 'docifyError', message: String(e?.message || e) })
           })
         } else if (msg.type === 'log' && msg.message) {
@@ -135,7 +137,16 @@ export class CalmPreviewPanel {
   }
 
   postSelect(id: string) {
+    this.currentSelectedId = id  // Track the current selection
+    this.output.appendLine(`[preview] TreeView selection changed to: ${id}`)
     this.panel.webview.postMessage({ type: 'select', id })
+    
+    // Also trigger docify refresh if docify tab is active
+    this.panel.webview.postMessage({ type: 'refreshDocifyIfActive' })
+  }
+
+  setGetCurrentTreeSelection(fn: () => string | undefined) {
+    this.getCurrentTreeSelection = fn
   }
 
   dispose() {
@@ -146,19 +157,30 @@ export class CalmPreviewPanel {
     }
   }
 
-  private async handleRunDocify(templatePathRaw?: string) {
+  private async handleRunDocify(templatePathRaw?: string, selectedId?: string) {
     const archUri = this.currentUri
     if (!archUri) {
       this.panel.webview.postMessage({ type: 'docifyError', message: 'No current architecture open in preview' })
       return
     }
 
+    // If no selectedId was passed, try to get the current TreeView selection
+    if (!selectedId && this.getCurrentTreeSelection) {
+      selectedId = this.getCurrentTreeSelection()
+      this.output.appendLine('[preview] Got current TreeView selection: ' + (selectedId || 'none'))
+    }
+    
+    // If still no selection, use the stored current selection
+    if (!selectedId) {
+      selectedId = this.currentSelectedId
+      this.output.appendLine('[preview] Using stored selection: ' + (selectedId || 'none'))
+    }
+
     let templatePath = templatePathRaw
     if (templatePath === '__DEFAULT__') {
-      try {
-        templatePath = path.join(this.context.extensionUri.fsPath, 'templates', 'default-template.hbs')
-        this.output.appendLine('[preview] Using packaged default template: ' + templatePath)
-      } catch { templatePath = undefined }
+      // Instead of using the packaged template, use our dynamic generation
+      templatePath = undefined  // This will trigger our dynamic template generation
+      this.output.appendLine('[preview] Using dynamic template based on selection: ' + (selectedId || 'none'))
     }
 
     const tmpDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'calm-docify-'))
@@ -166,9 +188,10 @@ export class CalmPreviewPanel {
 
     if (!templatePath) {
       const autoTpl = path.join(tmpDir, 'auto-template.hbs')
-      await fs.promises.writeFile(autoTpl, '{{block-architecture}}', 'utf8')
+      const templateContent = await this.generateTemplateContent(selectedId)
+      await fs.promises.writeFile(autoTpl, templateContent, 'utf8')
       templatePath = autoTpl
-      this.output.appendLine('[preview] Created auto template at ' + autoTpl)
+      this.output.appendLine('[preview] Generated dynamic template: ' + templateContent.replace(/\n/g, '\\n'))
     }
 
     const mod: any = await import('@finos/calm-shared')
@@ -210,6 +233,76 @@ export class CalmPreviewPanel {
       format: content.trim().startsWith('<') ? 'html' : 'markdown',
       sourceFile: outputPath || outFile,
     })
+  }
+
+  private async generateTemplateContent(selectedId?: string): Promise<string> {
+    // Debug: log current graph data structure
+    if (this.lastData?.graph) {
+      const graph = this.lastData.graph
+      this.output.appendLine(`[template] Graph has ${graph.nodes?.length || 0} nodes and ${graph.edges?.length || 0} edges`)
+      if (graph.nodes?.length > 0) {
+        this.output.appendLine(`[template] Node IDs: ${graph.nodes.map(n => n.id).join(', ')}`)
+      }
+      if (graph.edges?.length > 0) {
+        this.output.appendLine(`[template] Edge IDs: ${graph.edges.map(e => `${e.id}(${e.type})`).join(', ')}`)
+      }
+    } else {
+      this.output.appendLine('[template] No graph data available')
+    }
+
+    if (!selectedId) {
+      this.output.appendLine('[template] No selection - using default template')
+      return await this.loadTemplate('default-template.hbs')
+    }
+
+    // Handle group selections
+    if (selectedId.startsWith('group:')) {
+      this.output.appendLine(`[template] Group selection "${selectedId}" - using default template`)
+      return await this.loadTemplate('default-template.hbs')
+    }
+
+    // For individual items, we need to determine the type
+    if (this.lastData?.graph) {
+      const graph = this.lastData.graph
+
+      // Check if it's a node
+      const isNode = graph.nodes?.some(n => n.id === selectedId)
+      if (isNode) {
+        this.output.appendLine(`[template] Node selection "${selectedId}" - using focus-nodes template`)
+        const template = await this.loadTemplate('node-focus-template.hbs')
+        return template.replace(/\{\{focused-node-id\}\}/g, selectedId)
+      }
+
+      // Check if it's an edge (relationship or flow)
+      const edge = graph.edges?.find(e => e.id === selectedId)
+      if (edge) {
+        // Determine if it's a flow or relationship based on type
+        if (edge.type === 'flow') {
+          this.output.appendLine(`[template] Flow selection "${selectedId}" - using focus-flows template`)
+          const template = await this.loadTemplate('flow-focus-template.hbs')
+          return template.replace(/\{\{focused-flow-id\}\}/g, selectedId)
+        } else {
+          this.output.appendLine(`[template] Relationship selection "${selectedId}" (type: ${edge.type}) - using focus-relationships template`)
+          const template = await this.loadTemplate('relationship-focus-template.hbs')
+          return template.replace(/\{\{focused-relationship-id\}\}/g, selectedId)
+        }
+      }
+    }
+
+    // Fallback: default template
+    this.output.appendLine(`[template] Unknown selection "${selectedId}" - using fallback default template`)
+    return await this.loadTemplate('default-template.hbs')
+  }
+
+  private async loadTemplate(templateName: string): Promise<string> {
+    try {
+      const templatePath = path.join(this.context.extensionUri.fsPath, 'templates', templateName)
+      return await fs.promises.readFile(templatePath, 'utf8')
+    } catch (error) {
+      this.output.appendLine(`[template] Failed to load ${templateName}: ${error}`)
+      // Fallback to inline template
+      return '{{block-architecture}}'
+    }
   }
 
   private getHtml() {

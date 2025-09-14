@@ -73,7 +73,7 @@ export class CalmItem extends vscode.TreeItem {
     static leaf(id: string, label: string, contextValue: string) {
         const item = new CalmItem(label, vscode.TreeItemCollapsibleState.None, id)
         item.contextValue = contextValue
-    // No command; selection navigation is handled from the preview
+        // No command; selection navigation is handled from the preview
         return item
     }
 }

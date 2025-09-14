@@ -106,7 +106,7 @@ describe('CalmPreviewPanel readiness', () => {
     it('clears persisted positions and viewport on clearPositions', async () => {
         const { panel, listeners } = createMockPanel()
         const spyCreate = vi.spyOn(vscode.window, 'createWebviewPanel' as any).mockReturnValue(panel)
-        const state: any = { store: {}, update: vi.fn((k: string, v: any) => { state.store[k] = v }) , get: (k: string) => state.store[k] }
+        const state: any = { store: {}, update: vi.fn((k: string, v: any) => { state.store[k] = v }), get: (k: string) => state.store[k] }
         ctx = { extensionUri: (vscode as any).Uri.file('/tmp/ext'), workspaceState: state }
         const uri = (vscode as any).Uri.file('/tmp/doc.yml')
         const p = CalmPreviewPanel.createOrShow(ctx as any, uri, cfg as any, out as any)
@@ -117,6 +117,53 @@ describe('CalmPreviewPanel readiness', () => {
         listeners.forEach(l => l({ type: 'clearPositions' }))
         expect(state.store[`calm.positions:${uri.toString()}`]).toBeUndefined()
         expect(state.store[`calm.viewport:${uri.toString()}`]).toBeUndefined()
+        spyCreate.mockRestore()
+    })
+
+    it('generates correct template content based on selection', async () => {
+        const { panel } = createMockPanel()
+        const spyCreate = vi.spyOn(vscode.window, 'createWebviewPanel' as any).mockReturnValue(panel)
+        const p = CalmPreviewPanel.createOrShow(ctx as any, (vscode as any).Uri.file('/tmp/doc.yml'), cfg as any, out as any)
+
+        // Set graph data with nodes and edges
+        const graphData = {
+            graph: {
+                nodes: [
+                    { id: 'test-node', label: 'Test Node' },
+                    { id: 'another-node', label: 'Another Node' }
+                ],
+                edges: [
+                    { id: 'test-relationship', source: 'test-node', target: 'another-node', type: 'connects' },
+                    { id: 'test-flow', source: 'test-node', target: 'another-node', type: 'flow' }
+                ]
+            },
+            selectedId: undefined,
+            settings: { layout: 'dagre', showLabels: true }
+        }
+        p.setData(graphData as any)
+
+        // Test access to private method through any cast
+        const generateTemplate = (p as any).generateTemplateContent.bind(p)
+
+        // Test default case (no selection)
+        expect(generateTemplate()).toBe('{{block-architecture}}')
+
+        // Test group selection
+        expect(generateTemplate('group:architecture')).toBe('{{block-architecture}}')
+        expect(generateTemplate('group:nodes')).toBe('{{block-architecture}}')
+
+        // Test node selection
+        expect(generateTemplate('test-node')).toBe('{{block-architecture focus-nodes="test-node"}}')
+
+        // Test relationship selection
+        expect(generateTemplate('test-relationship')).toBe('{{block-architecture focus-relationships="test-relationship"}}')
+
+        // Test flow selection
+        expect(generateTemplate('test-flow')).toBe('{{block-architecture focus-flows="test-flow"}}')
+
+        // Test unknown selection (fallback)
+        expect(generateTemplate('unknown-id')).toBe('{{block-architecture}}')
+
         spyCreate.mockRestore()
     })
 })

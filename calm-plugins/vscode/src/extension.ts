@@ -39,6 +39,10 @@ export function activate(context: vscode.ExtensionContext) {
     const treeView = vscode.window.createTreeView('calmSidebar', { treeDataProvider: treeProvider })
     treeProvider.attach(treeView)
     context.subscriptions.push(treeView)
+    
+    // Function to get current TreeView selection
+    const getCurrentSelection = () => treeView.selection?.[0]?.id
+    
     treeView.onDidChangeSelection(async (ev) => {
         const id = ev.selection?.[0]?.id
         if (!id) return
@@ -70,6 +74,7 @@ export function activate(context: vscode.ExtensionContext) {
 
         if (!currentPreview) {
             currentPreview = CalmPreviewPanel.createOrShow(context, doc.uri, config(), output)
+            currentPreview.setGetCurrentTreeSelection(getCurrentSelection)  // Pass the selection function
             currentPreview.onDidDispose(() => { currentPreview = undefined })
             currentPreview.onRevealInEditor((id) => {
                 const uri = currentPreview?.getCurrentUri()

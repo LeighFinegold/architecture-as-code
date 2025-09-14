@@ -88,7 +88,7 @@ export function toGraph(model: CalmModel, _cfg?: any) {
     // Build parent mapping from 'deployed-in' relationships (node -> container)
     const parentMap = new Map<string, string>()
     for (const r of (model.relationships || []) as any[]) {
-    if (r && (r.type === 'deployed-in' || r.type === 'composed-of') && r.source && r.target) {
+        if (r && (r.type === 'deployed-in' || r.type === 'composed-of') && r.source && r.target) {
             parentMap.set(r.source, r.target)
         }
     }
