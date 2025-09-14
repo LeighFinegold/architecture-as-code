@@ -1,15 +1,25 @@
+// src/webview/main.ts
 import cytoscape from 'cytoscape'
 import fcose from 'cytoscape-fcose'
 import dagre from 'cytoscape-dagre'
-// Compose labels safely (duplicated here by logic to avoid bundling node module path issues)
+import MarkdownIt from 'markdown-it'
+import mermaid from 'mermaid'
 
+// Compose labels safely (duplicated here by logic to avoid bundling node module path issues)
 cytoscape.use(fcose)
 cytoscape.use(dagre)
 
-// Access VS Code API if present; otherwise fall back to no-op poster. Use void 0 pattern to avoid unused global warnings.
-const vscode = (typeof window !== 'undefined' && typeof (window as any).acquireVsCodeApi === 'function')
-    ? (window as any).acquireVsCodeApi()
-    : { postMessage: (_: any) => { /* noop */ } }
+// Access VS Code API if present; otherwise fall back to no-op poster.
+const vscode =
+    typeof window !== 'undefined' && typeof (window as any).acquireVsCodeApi === 'function'
+        ? (window as any).acquireVsCodeApi()
+        : { postMessage: (_: any) => { /* noop */ } }
+
+declare global {
+    interface Window {
+        renderMarkdown?: (md: string) => Promise<string>
+    }
+}
 
 let cy: cytoscape.Core | undefined
 let currentData: any
@@ -22,6 +32,64 @@ let pendingSelectTimer: any
 let forceLayoutNextRender = false
 let viewportAppliedFromHost = false
 
+// ---------------------------
+// Markdown + Mermaid renderer
+// ---------------------------
+const md = new MarkdownIt({
+    html: true,   // Docify output is local/trusted
+    linkify: true,
+    breaks: true,
+})
+
+let mermaidReady = false
+function ensureMermaid() {
+    if (!mermaidReady) {
+        mermaid.initialize({
+            startOnLoad: false,
+            securityLevel: 'strict', // suits VS Code webview CSP
+            theme: 'base',
+        })
+        mermaidReady = true
+    }
+}
+
+// Expose a Promise-based renderer that previewPanel calls
+window.renderMarkdown = async (mdText: string) => {
+    const initialHtml = md.render(String(mdText ?? ''))
+
+    // Replace Mermaid code blocks with rendered SVG
+    ensureMermaid()
+    const container = document.createElement('div')
+    container.innerHTML = initialHtml
+
+    const codes = container.querySelectorAll('code.language-mermaid')
+    if (!codes.length) return container.innerHTML
+
+    let i = 0
+    for (const code of Array.from(codes)) {
+        const graph = code.textContent ?? ''
+        const pre = code.parentElement?.tagName.toLowerCase() === 'pre' ? code.parentElement! : code
+        try {
+            const id = `mmd-${++i}`
+            const out = await mermaid.render(id, graph) // v10+: { svg, bindFunctions }
+            const shell = document.createElement('div')
+            shell.innerHTML = out.svg
+            const svgEl = shell.firstElementChild
+            if (svgEl) pre.replaceWith(svgEl)
+        } catch (e) {
+            const err = document.createElement('pre')
+            err.textContent = 'Mermaid error: ' + String(e)
+            pre.replaceWith(err)
+        }
+    }
+
+    return container.innerHTML
+}
+
+// ---------------------------
+// Cytoscape preview logic
+// ---------------------------
+
 function init() {
     const container = document.getElementById('cy')!
     const grid = document.getElementById('container') as HTMLDivElement
@@ -31,7 +99,7 @@ function init() {
             container,
             elements: [],
             layout: { name: 'dagre' },
-            style: getThemeStyles()
+            style: getThemeStyles(),
         })
     } catch (e: any) {
         postError('Cytoscape init failed', e)
@@ -53,8 +121,8 @@ function init() {
         }
     })
 
-    document.getElementById('fit')!.addEventListener('click', () => cy?.fit())
-    document.getElementById('reset')!.addEventListener('click', () => {
+    document.getElementById('fit')?.addEventListener('click', () => cy?.fit())
+    document.getElementById('reset')?.addEventListener('click', () => {
         try {
             nodePositions.clear()
             vscode.postMessage({ type: 'clearPositions' })
@@ -79,30 +147,26 @@ function init() {
             if (!dragging) return
             const rect = grid.getBoundingClientRect()
             let left = e.clientX - rect.left
-            // clamp
             if (left < minLeft) left = minLeft
             if (left > rect.width - minRight) left = rect.width - minRight
             const right = rect.width - left
-            // grid has three columns: left | divider | right
             grid.style.gridTemplateColumns = `${left}px 4px ${right - 4}px`
             cy?.resize()
         })
         window.addEventListener('mouseup', () => { dragging = false })
     }
-    document.getElementById('labels')!.addEventListener('change', (e) => {
+    document.getElementById('labels')?.addEventListener('change', (e) => {
         const show = (e.target as HTMLInputElement).checked
         currentShowLabels = show
         applyTheme()
-        // Avoid re-layout if user has positioned nodes
         if (nodePositions.size === 0) safeLayout(currentLayout)
-        try { vscode.postMessage({ type: 'saveToggles', toggles: { showLabels: currentShowLabels, showDescriptions } }) } catch {}
+        try { vscode.postMessage({ type: 'saveToggles', toggles: { showLabels: currentShowLabels, showDescriptions } }) } catch { }
     })
-    document.getElementById('descriptions')!.addEventListener('change', (e) => {
+    document.getElementById('descriptions')?.addEventListener('change', (e) => {
         showDescriptions = (e.target as HTMLInputElement).checked
-        applyTheme() // recompose label fields
-        // Avoid re-layout if user has positioned nodes
+        applyTheme()
         if (nodePositions.size === 0) safeLayout(currentLayout)
-        try { vscode.postMessage({ type: 'saveToggles', toggles: { showLabels: currentShowLabels, showDescriptions } }) } catch {}
+        try { vscode.postMessage({ type: 'saveToggles', toggles: { showLabels: currentShowLabels, showDescriptions } }) } catch { }
     })
 
     window.addEventListener('message', (event) => {
@@ -119,18 +183,17 @@ function init() {
                     }
                 } catch { /* noop */ }
             }
-            // Apply saved viewport if provided and we don't yet have a prior pan/zoom
-        if (msg.viewport && typeof msg.viewport === 'object' && cy) {
+            // Apply saved viewport if provided
+            if (msg.viewport && typeof msg.viewport === 'object' && cy) {
                 try {
                     if (typeof msg.viewport.zoom === 'number') cy.zoom(msg.viewport.zoom)
                     if (msg.viewport.pan && typeof msg.viewport.pan.x === 'number' && typeof msg.viewport.pan.y === 'number') {
                         cy.pan({ x: msg.viewport.pan.x, y: msg.viewport.pan.y })
                     }
-            viewportAppliedFromHost = true
+                    viewportAppliedFromHost = true
                 } catch { /* noop */ }
             }
             render(msg.graph)
-            // Do not center on selection during data updates to avoid viewport jumps
             if (msg.selectedId) selectById(msg.selectedId, false)
             if (msg.settings) applySettings(msg.settings)
         } else if (msg.type === 'select') {
@@ -154,7 +217,7 @@ function init() {
     // Persist positions on unload as a safety net
     window.addEventListener('beforeunload', () => {
         try { persistPositions() } catch { /* noop */ }
-    try { persistViewport() } catch { /* noop */ }
+        try { persistViewport() } catch { /* noop */ }
     })
 }
 
@@ -165,24 +228,23 @@ function render(graph: any) {
         // Snapshot current viewport to restore later
         let prevPan: any | undefined
         let prevZoom: number | undefined
-    // Track whether we intentionally adjusted the viewport this render
-    let skipViewportRestore = false
+        let skipViewportRestore = false
         try {
             prevPan = cy.pan ? cy.pan() : undefined
             prevZoom = cy.zoom ? cy.zoom() : undefined
         } catch { /* noop */ }
 
-    const nodes = Array.isArray(currentData.nodes) ? currentData.nodes : []
-    const edges = Array.isArray(currentData.edges) ? currentData.edges : []
-    const c = cy as cytoscape.Core
+        const nodes = Array.isArray(currentData.nodes) ? currentData.nodes : []
+        const edges = Array.isArray(currentData.edges) ? currentData.edges : []
+        const c = cy as cytoscape.Core
 
-    const newNodeIds = new Set(nodes.map((n: any) => String(n.id)))
-    const newEdgeIds = new Set(edges.map((e: any) => String(e.id)))
+        const newNodeIds = new Set(nodes.map((n: any) => String(n.id)))
+        const newEdgeIds = new Set(edges.map((e: any) => String(e.id)))
 
-    const wasEmpty = cy.elements().length === 0
-    const hasAnySavedPositions = nodes.some((n: any) => nodePositions.has(String(n.id)))
+        const wasEmpty = cy.elements().length === 0
+        const hasAnySavedPositions = nodes.some((n: any) => nodePositions.has(String(n.id)))
 
-        ;(cy as any).startBatch?.()
+            ; (cy as any).startBatch?.()
         // Persist existing positions
         try {
             cy.nodes().forEach(n => {
@@ -191,48 +253,36 @@ function render(graph: any) {
             })
         } catch { /* noop */ }
 
-        // Remove edges not present anymore (do edges first to avoid orphan inconsistencies)
+        // Remove edges not present anymore
         try {
             if (typeof (cy as any).edges === 'function') {
                 (cy as any).edges().forEach((e: any) => {
                     const id = e.data('id')
-                    if (id && !newEdgeIds.has(String(id))) {
-                        e.remove()
-                    }
+                    if (id && !newEdgeIds.has(String(id))) e.remove()
                 })
             }
         } catch { /* noop */ }
-            // Remove nodes not present anymore
-            try {
-                cy.nodes().forEach(n => {
-                    const id = n.data('id')
-                    if (id && !newNodeIds.has(String(id))) {
-                        n.remove()
-                    }
-                })
-            } catch { /* noop */ }
+        // Remove nodes not present anymore
+        try {
+            cy.nodes().forEach(n => {
+                const id = n.data('id')
+                if (id && !newNodeIds.has(String(id))) n.remove()
+            })
+        } catch { /* noop */ }
 
         // Update existing nodes' data minimally and collect which are missing
-    const existingNodeIds = new Set<string>()
-    cy.nodes().forEach(n => { existingNodeIds.add(String(n.data('id'))) })
+        const existingNodeIds = new Set<string>()
+        cy.nodes().forEach(n => { existingNodeIds.add(String(n.data('id'))) })
 
-        // Add/update nodes. Ensure parents are added before children for compound hierarchy stability.
+        // Add/update nodes ensuring parents before children for compounds
         const orderedNodes = (() => {
             const ns: any[] = nodes as any[]
-            // Build adjacency: child -> parent
             const pmap = new Map<string, string | undefined>()
             ns.forEach((n: any) => pmap.set(String(n.id), (n as any).parent))
-            const indeg = new Map<string, number>()
-            ns.forEach((n: any) => indeg.set(String(n.id), 0))
-            for (const [child, parent] of pmap) {
-                if (parent && indeg.has(child)) indeg.set(child, (indeg.get(child) || 0) + 1)
-            }
-            // Kahn-ish: repeatedly emit nodes with no parent or whose parent not in set
             const emitted = new Set<string>()
             const result: any[] = []
             const byId = new Map(ns.map((n: any) => [String(n.id), n]))
             const queue: string[] = []
-            // seed with roots
             for (const n of ns) {
                 const id = String((n as any).id)
                 const p = (n as any).parent
@@ -243,22 +293,18 @@ function render(graph: any) {
                 if (emitted.has(id)) continue
                 const n = byId.get(id)
                 if (!n) continue
-                // ensure parent is already emitted if it exists in set
                 const p = (n as any).parent
                 if (p && byId.has(String(p)) && !emitted.has(String(p))) {
-                    // push parent first, then child again
                     queue.unshift(id)
                     queue.unshift(String(p))
                     continue
                 }
                 result.push(n)
                 emitted.add(id)
-                // enqueue children of this node
                 for (const [cid, cp] of pmap) {
                     if (cp === id && !emitted.has(cid)) queue.push(cid)
                 }
             }
-            // Fallback: if something wasn't emitted (cycle?), append remaining
             for (const n of ns) if (!emitted.has(String((n as any).id))) result.push(n as any)
             return result
         })()
@@ -267,12 +313,10 @@ function render(graph: any) {
             if (existingNodeIds.has(id)) {
                 const ele = cy.$id(id)
                 if (ele && ele.length) {
-                    // Only update fields that can change without recreating
                     const cur = ele.data()
                     if (cur.label !== n.label) ele.data('label', n.label)
                     if (cur.description !== n.description) ele.data('description', n.description)
                     if (cur['node-type'] !== n['node-type']) ele.data('node-type', n['node-type'])
-                    // Parent changes must use move()
                     const curParent = (ele as any).parent()?.id() || undefined
                     const nextParent = n.parent
                     if (curParent !== nextParent) {
@@ -280,14 +324,12 @@ function render(graph: any) {
                     }
                 }
             } else {
-                // Add new node
                 cy.add({ data: n })
-                // Position new node near a neighbor if possible after we add edges below
             }
         }
 
         // Update existing edges or add new ones
-    const existingEdgeIds = new Set<string>()
+        const existingEdgeIds = new Set<string>()
         try { cy.edges().forEach(e => { existingEdgeIds.add(String(e.data('id'))) }) } catch { /* noop */ }
         for (const e of edges) {
             const id = String(e.id)
@@ -303,63 +345,46 @@ function render(graph: any) {
             }
         }
 
-        // Safety: synthesize placeholder nodes for any edge endpoints missing from the graph
+        // Final sanity: ensure all nodes from data exist
+        try {
+            let addedCount = 0
+            const seen = new Set<string>()
+            cy.nodes().forEach(n => { const i = String(n.data('id')); if (i) seen.add(i) })
+            for (const n of nodes) {
+                const id = String(n.id)
+                if (!seen.has(id)) { (cy as any).add({ data: n }); addedCount++ }
+            }
+            if (addedCount > 0) vscode.postMessage({ type: 'log', message: `Sanity-added ${addedCount} missing nodes` })
+        } catch { /* noop */ }
 
-            // Final sanity: ensure all nodes from data exist
-            try {
-                let addedCount = 0
-                const seen = new Set<string>()
-                cy.nodes().forEach(n => { const i = String(n.data('id')); if (i) seen.add(i) })
-                for (const n of nodes) {
-                    const id = String(n.id)
-                    if (!seen.has(id)) {
-                        c.add({ data: n })
-                        addedCount++
-                    }
-                }
-                if (addedCount > 0) {
-                    vscode.postMessage({ type: 'log', message: `Sanity-added ${addedCount} missing nodes` })
-                }
-            } catch { /* noop */ }
-    try {
-        const presentIds = new Set<string>()
-        cy.nodes().forEach(n => { presentIds.add(String(n.data('id'))) })
-        edges.forEach((e: any) => {
+        try {
+            const presentIds = new Set<string>()
+            cy.nodes().forEach(n => { presentIds.add(String(n.data('id'))) })
+            edges.forEach((e: any) => {
                 const src = String(e.source)
                 const dst = String(e.target)
-                if (src && !presentIds.has(src)) {
-            c.add({ data: { id: src, label: src } })
-                    presentIds.add(src)
-                }
-                if (dst && !presentIds.has(dst)) {
-            c.add({ data: { id: dst, label: dst } })
-                    presentIds.add(dst)
-                }
-        })
+                if (src && !presentIds.has(src)) { (c as any).add({ data: { id: src, label: src } }); presentIds.add(src) }
+                if (dst && !presentIds.has(dst)) { (c as any).add({ data: { id: dst, label: dst } }); presentIds.add(dst) }
+            })
         } catch { /* noop */ }
 
         // Ensure composed labels/styles before any layout for sizing
         applyTheme()
 
-    // Place any newly-added nodes near a positioned neighbor
-    const toPlace: cytoscape.NodeCollection = cy.nodes().filter(n => !nodePositions.has(String(n.data('id'))))
-    let fallbackCount = 0
-    toPlace.forEach((node) => {
+        // Place any newly-added nodes near a positioned neighbor
+        const toPlace: cytoscape.NodeCollection = cy.nodes().filter(n => !nodePositions.has(String(n.data('id'))))
+        let fallbackCount = 0
+        toPlace.forEach((node) => {
             const id = String(node.data('id'))
             let placed = false
             try {
-        const connected = c.edges().filter(e => e.data('source') === id || e.data('target') === id)
+                const connected = c.edges().filter(e => e.data('source') === id || e.data('target') === id)
                 for (const e of connected) {
                     const otherId = e.data('source') === id ? e.data('target') : e.data('source')
                     const op = nodePositions.get(String(otherId))
-                    if (op) {
-                        node.position({ x: op.x + 60, y: op.y + 40 })
-                        placed = true
-                        break
-                    }
+                    if (op) { node.position({ x: op.x + 60, y: op.y + 40 }); placed = true; break }
                 }
             } catch { /* noop */ }
-            // Fallback 2: if the node has a compound parent, place near the parent
             if (!placed) {
                 try {
                     const pId = (node as any).data('parent')
@@ -373,17 +398,15 @@ function render(graph: any) {
                 } catch { /* noop */ }
             }
             if (!placed) {
-                // Fallback: place at current viewport center to ensure visibility
                 try {
                     const ext = c.extent?.()
                     if (ext) {
                         const cx = (ext.x1 + ext.x2) / 2
                         const cyv = (ext.y1 + ext.y2) / 2
-                        // Spread multiple new nodes around center to avoid overlap/zero-length edges
                         const col = fallbackCount % 3
                         const row = Math.floor(fallbackCount / 3)
-                        const dx = (col - 1) * 90 // -90, 0, +90
-                        const dy = (row - 1) * 70 // -70, 0, +70
+                        const dx = (col - 1) * 90
+                        const dy = (row - 1) * 70
                         node.position({ x: cx + dx, y: cyv + dy })
                         fallbackCount += 1
                     } else {
@@ -395,7 +418,6 @@ function render(graph: any) {
             }
         })
 
-    // If this is the first render with saved positions, tidy up only the new nodes within the viewport
         if (wasEmpty && hasAnySavedPositions && toPlace.length > 0) {
             try {
                 const ext = c.extent?.()
@@ -404,38 +426,30 @@ function render(graph: any) {
             } catch { /* noop */ }
         }
 
-        // Restore known positions explicitly (in case any changed via compound reparenting)
-            cy.nodes().forEach(n => {
-                    const id = String(n.data('id'))
-                    const pos = nodePositions.get(id)
-                    if (pos) n.position(pos)
-                })
+        // Restore known positions explicitly
+        cy.nodes().forEach(n => {
+            const id = String(n.data('id'))
+            const pos = nodePositions.get(id)
+            if (pos) n.position(pos)
+        })
 
         // Decide if we should run an initial or forced layout
-    if (forceLayoutNextRender && nodes.length > 0) {
+        if (forceLayoutNextRender && nodes.length > 0) {
             safeLayout(currentLayout)
             cy.fit()
             forceLayoutNextRender = false
-        skipViewportRestore = true
+            skipViewportRestore = true
         } else if (wasEmpty && nodes.length > 0) {
             if (!hasAnySavedPositions) {
                 safeLayout(currentLayout)
-                if (!prevPan || typeof prevZoom !== 'number') {
-                    cy.fit()
-            skipViewportRestore = true
-                }
+                if (!prevPan || typeof prevZoom !== 'number') { cy.fit(); skipViewportRestore = true }
             } else {
-                // If we have saved positions but no host-provided viewport, fit once to ensure visibility
-                if (!viewportAppliedFromHost) {
-            cy.fit()
-            skipViewportRestore = true
-                } else {
-                    vscode.postMessage({ type: 'log', message: 'Skipped initial layout due to saved positions' })
-                }
+                if (!viewportAppliedFromHost) { cy.fit(); skipViewportRestore = true }
+                else vscode.postMessage({ type: 'log', message: 'Skipped initial layout due to saved positions' })
             }
         }
 
-        // Safety net: on very first render, if the current viewport shows little to no content, do a single fit
+        // First render visibility safety
         if (wasEmpty && nodes.length > 0 && !skipViewportRestore) {
             try {
                 const ext = c.extent?.()
@@ -447,15 +461,11 @@ function render(graph: any) {
                     })
                     const total = Math.max(1, cy.nodes().length)
                     const ratio = inside / total
-                    if (inside === 0 || ratio < 0.25) {
-                        cy.fit()
-                        skipViewportRestore = true
-                    }
+                    if (inside === 0 || ratio < 0.25) { cy.fit(); skipViewportRestore = true }
                 }
             } catch { /* noop */ }
         }
 
-        // Non-empty canvas: ensure any genuinely new nodes are visible if they landed outside the current viewport
         if (!wasEmpty && toPlace.length > 0) {
             try {
                 const ext = c.extent?.()
@@ -465,28 +475,22 @@ function render(graph: any) {
                         const p = (n as any).position()
                         if (p.x < ext.x1 || p.x > ext.x2 || p.y < ext.y1 || p.y > ext.y2) outside = true
                     })
-                    if (outside) {
-                        if (typeof c.center === 'function') {
-                            c.center(toPlace)
-                            skipViewportRestore = true
-                        }
-                    }
+                    if (outside && typeof c.center === 'function') { c.center(toPlace); skipViewportRestore = true }
                 }
             } catch { /* noop */ }
         }
 
-        // Always restore previous viewport to avoid any subtle camera drift
-            try {
-                // Skip restoring viewport if we intentionally adjusted it this frame
-                if (!forceLayoutNextRender && !skipViewportRestore) {
-                    if (prevPan && typeof cy.pan === 'function') cy.pan(prevPan)
-                    if (typeof prevZoom === 'number' && typeof cy.zoom === 'function') cy.zoom(prevZoom)
-                }
-            } catch { /* noop */ }
+        // Always restore previous viewport if we didn't intentionally change it
+        try {
+            if (!forceLayoutNextRender && !skipViewportRestore) {
+                if (prevPan && typeof cy.pan === 'function') cy.pan(prevPan)
+                if (typeof prevZoom === 'number' && typeof cy.zoom === 'function') cy.zoom(prevZoom)
+            }
+        } catch { /* noop */ }
 
-        ;(cy as any).endBatch?.()
+        ; (cy as any).endBatch?.()
         cy.resize()
-        // If first render with saved positions, ensure any newly placed nodes are visible
+
         if (wasEmpty && hasAnySavedPositions && toPlace.length > 0) {
             try {
                 const ext = c.extent?.()
@@ -496,17 +500,14 @@ function render(graph: any) {
                         const p = (n as any).position()
                         if (p.x < ext.x1 || p.x > ext.x2 || p.y < ext.y1 || p.y > ext.y2) outside = true
                     })
-                    if (outside && typeof c.center === 'function') {
-                        c.center(toPlace)
-                    }
+                    if (outside && typeof c.center === 'function') c.center(toPlace)
                 }
             } catch { /* noop */ }
         }
-        // Persist viewport after render settles (and after any visibility adjustment)
+
         try { persistViewport() } catch { /* noop */ }
 
         vscode.postMessage({ type: 'log', message: `Rendered ${nodes.length} nodes and ${edges.length} edges` })
-        // Apply any pending selection after viewport restore
         if (pendingSelect) selectById(pendingSelect, false)
     } catch (e: any) {
         postError('Render failed', e)
@@ -516,14 +517,11 @@ function render(graph: any) {
 function selectById(id: string, center: boolean = true) {
     const ele = cy?.elements().filter((e) => e.data('id') === id)
     if (ele && ele.length > 0) {
-    // Mirror click behavior: clear previous visual selection and apply to target
-    cy?.elements().unselect()
-    cy?.elements().removeClass('selected')
-    ele.select()
-    ele.addClass('selected')
-        if (center) {
-            cy?.center(ele)
-        }
+        cy?.elements().unselect()
+        cy?.elements().removeClass('selected')
+        ele.select()
+        ele.addClass('selected')
+        if (center) cy?.center(ele)
         updateDetails(id)
     }
 }
@@ -532,10 +530,7 @@ function applySettings(s: any) {
     if (!cy) return
     if (s.layout) {
         currentLayout = s.layout
-        // Only (re)layout if we don't have user-defined positions
-        if (nodePositions.size === 0) {
-            safeLayout(currentLayout)
-        }
+        if (nodePositions.size === 0) safeLayout(currentLayout)
     }
     if (typeof s.showLabels === 'boolean') {
         currentShowLabels = s.showLabels
@@ -559,13 +554,8 @@ function updateDetails(id: string) {
     const edge = currentData.edges.find((e: any) => e.id === id)
     const selected = node || edge
     if (!selected) { pre.textContent = ''; return }
-    // Prefer raw for full detail; fallback to selected
     const raw = selected.raw || selected
-    try {
-        pre.textContent = JSON.stringify(raw, null, 2)
-    } catch {
-        pre.textContent = String(raw)
-    }
+    try { pre.textContent = JSON.stringify(raw, null, 2) } catch { pre.textContent = String(raw) }
 }
 
 init()
@@ -579,7 +569,7 @@ function postError(context: string, e: any) {
 }
 
 window.addEventListener('error', (ev) => {
-    postError('Window error', ev.error || ev.message)
+    postError('Window error', (ev as any).error || (ev as any).message)
 })
 
 window.addEventListener('unhandledrejection', (ev: any) => {
@@ -595,20 +585,17 @@ function safeLayout(preferred?: string) {
             cy.layout({ name }).run()
             vscode.postMessage({ type: 'log', message: `Applied layout: ${name}` })
             currentLayout = name
-            // Update cached positions after layout so we preserve them on next render
             try {
                 nodePositions.clear()
                 cy.nodes().forEach(n => {
                     const id = n.data('id')
                     if (id) nodePositions.set(id, { ...n.position() })
                 })
-                // Persist positions after layout
                 persistPositions()
-                // Persist viewport too
                 persistViewport()
             } catch { /* noop */ }
             return
-    } catch {
+        } catch {
             // try next
         }
     }
@@ -623,39 +610,36 @@ function isDarkTheme(): boolean {
 
 function getThemeStyles(): any[] {
     const dark = isDarkTheme()
-    const palette = dark ? {
-        nodeBg: '#3b82f6',
-        text: '#111827',
-        edge: '#9ca3af',
-        selection: '#f59e0b'
-    } : {
-        nodeBg: '#4e79a7',
-        text: '#222222',
-        edge: '#aaaaaa',
-        selection: '#f28e2b'
-    }
-    // Choose node/edge label field based on toggles
-    const nodeLabelField = (currentShowLabels && showDescriptions)
-        ? 'data(labelComposed)'
-        : currentShowLabels
-            ? 'data(labelTitle)'
-            : showDescriptions
-                ? 'data(labelDesc)'
-                : ''
-    const edgeLabelField = (currentShowLabels && showDescriptions)
-        ? 'data(labelComposed)'
-        : currentShowLabels
-            ? 'data(labelTitle)'
-            : showDescriptions
-                ? 'data(labelDesc)'
-                : ''
+    const palette = dark
+        ? { nodeBg: '#3b82f6', text: '#111827', edge: '#9ca3af', selection: '#f59e0b' }
+        : { nodeBg: '#4e79a7', text: '#222222', edge: '#aaaaaa', selection: '#f28e2b' }
+
+    const nodeLabelField =
+        currentShowLabels && showDescriptions
+            ? 'data(labelComposed)'
+            : currentShowLabels
+                ? 'data(labelTitle)'
+                : showDescriptions
+                    ? 'data(labelDesc)'
+                    : ''
+
+    const edgeLabelField =
+        currentShowLabels && showDescriptions
+            ? 'data(labelComposed)'
+            : currentShowLabels
+                ? 'data(labelTitle)'
+                : showDescriptions
+                    ? 'data(labelDesc)'
+                    : ''
+
     return [
         {
-            selector: 'node', style: {
-                'label': nodeLabelField,
+            selector: 'node',
+            style: {
+                label: nodeLabelField,
                 'text-opacity': 1,
                 'background-color': '#f5f5f5',
-                'color': palette.text,
+                color: palette.text,
                 'font-size': 14,
                 'text-wrap': 'wrap',
                 'text-max-width': '180px',
@@ -664,54 +648,50 @@ function getThemeStyles(): any[] {
                 'font-family': 'Arial',
                 'border-color': 'black',
                 'border-width': 1,
-                'padding': '10px',
-                'width': '200px',
-                'height': 'label',
-                'shape': 'rectangle'
-            }
+                padding: '10px',
+                width: '200px',
+                height: 'label',
+                shape: 'rectangle',
+            },
         },
         {
-            selector: ':parent', style: {
-                'label': 'data(label)',
+            selector: ':parent',
+            style: {
+                label: 'data(label)',
                 'text-valign': 'top',
                 'text-halign': 'center',
                 'background-color': 'white',
                 'border-style': 'dashed',
                 'border-width': 2,
                 'border-dash-pattern': [8, 10],
-                'padding': '20px'
-            }
+                padding: '20px',
+            },
         },
+        { selector: ':parent:selected', style: { 'border-color': palette.selection, 'border-width': 3 } },
         {
-            selector: ':parent:selected', style: {
-                'border-color': palette.selection,
-                'border-width': 3
-            }
-        },
-        {
-            selector: 'edge', style: {
+            selector: 'edge',
+            style: {
                 'curve-style': 'bezier',
                 'target-arrow-shape': 'triangle',
-                'width': 2,
+                width: 2,
                 'line-color': palette.edge,
                 'target-arrow-color': palette.edge,
-                'label': edgeLabelField,
-                'color': palette.text,
+                label: edgeLabelField,
+                color: palette.text,
                 'font-size': 14,
                 'text-wrap': 'ellipsis',
                 'text-background-color': 'white',
                 'text-background-opacity': 1,
-                'text-background-padding': '5px'
-            }
+                'text-background-padding': '5px',
+            },
         },
-        { selector: '.selected', style: { 'border-width': 3, 'border-color': palette.selection } }
+        { selector: '.selected', style: { 'border-width': 3, 'border-color': palette.selection } },
     ]
 }
 
 function applyTheme() {
     if (!cy) return
     try {
-        // Before applying styles, compute composed label fields into element data
         cy.nodes().forEach(n => {
             const data = n.data()
             const title = data.label || data.id
@@ -724,11 +704,7 @@ function applyTheme() {
             const data = e.data()
             const lbl = (data.label || '').trim()
             const desc = (data.description || '').trim()
-            const composed = (!lbl && desc)
-                ? desc
-                : (desc && desc !== lbl && !lbl.includes(desc))
-                    ? `${lbl}${lbl ? ' — ' : ''}${desc}`
-                    : lbl
+            const composed = !lbl && desc ? desc : desc && desc !== lbl && !lbl.includes(desc) ? `${lbl}${lbl ? ' — ' : ''}${desc}` : lbl
             e.data('labelTitle', lbl)
             e.data('labelDesc', desc)
             e.data('labelComposed', composed)
@@ -740,14 +716,11 @@ function applyTheme() {
     }
 }
 
-// label visibility is handled via getThemeStyles + applyTheme
-
 function persistPositions() {
     if (!cy) return
     try {
         const map: Record<string, { x: number; y: number }> = {}
         cy.nodes().forEach(n => {
-            // Only persist leaf nodes; parents are computed from children
             if ((n as any).isParent && (n as any).isParent()) return
             const id = n.data('id')
             if (!id) return

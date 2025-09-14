@@ -20,7 +20,10 @@ export default defineConfig([
             'cytoscape-dagre',
             'cytoscape-fcose',
             'lodash',
-            '@finos/calm-shared'
+            '@finos/calm-shared',
+            'markdown-it',
+            'mermaid',
+            'jsdom'
         ],
         minify: false,
         outDir: 'dist',
