@@ -8,10 +8,16 @@ export class CalmTreeProvider implements vscode.TreeDataProvider<CalmItem> {
     private groupRels = new CalmItem('Relationships', vscode.TreeItemCollapsibleState.Collapsed, 'group:relationships')
     private groupFlows = new CalmItem('Flows', vscode.TreeItemCollapsibleState.Collapsed, 'group:flows')
     private tree: vscode.TreeView<CalmItem> | undefined
+    private isTemplateMode: boolean = false
 
     constructor(private getIndex: () => ModelIndex | undefined) { }
 
     setModel(_index?: ModelIndex) {
+        this._onDidChangeTreeData.fire()
+    }
+
+    setTemplateMode(isTemplateMode: boolean) {
+        this.isTemplateMode = isTemplateMode
         this._onDidChangeTreeData.fire()
     }
 
@@ -36,6 +42,23 @@ export class CalmTreeProvider implements vscode.TreeDataProvider<CalmItem> {
     }
 
     getChildren(element?: CalmItem): Promise<CalmItem[]> {
+        // In template mode, show a disabled message
+        if (this.isTemplateMode) {
+            if (!element) {
+                const messageItem = new CalmItem(
+                    'Navigation unavailable in Live Docify mode', 
+                    vscode.TreeItemCollapsibleState.None, 
+                    'template-mode-message'
+                )
+                messageItem.tooltip = 'Switch to an architecture file to use navigation features'
+                messageItem.iconPath = new vscode.ThemeIcon('info')
+                messageItem.contextValue = 'template-mode-message'
+                return Promise.resolve([messageItem])
+            }
+            return Promise.resolve([])
+        }
+
+        // Normal architecture mode
         const index = this.getIndex()
         if (!index) return Promise.resolve([])
         if (!element) {

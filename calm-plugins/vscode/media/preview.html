@@ -30,10 +30,15 @@
     <div style="font-size:12px;color:var(--vscode-editor-foreground)">Version: {{version}}</div>
   </header>
 
-  <div class="tabs" role="tablist" aria-label="Preview Tabs">
-    <button class="tab-button active" role="tab" data-target="docify-panel">Docify</button>
-    <button class="tab-button" role="tab" data-target="template-panel">Template</button>
-    <button class="tab-button" role="tab" data-target="model-panel">Model</button>
+  <div class="tabs" role="tablist" aria-label="Preview Tabs" style="display:flex;justify-content:space-between;align-items:center;">
+    <div style="display:flex;">
+      <button class="tab-button active" role="tab" data-target="docify-panel">Docify</button>
+      <button class="tab-button" role="tab" data-target="template-panel">Template</button>
+      <button class="tab-button" role="tab" data-target="model-panel">Model</button>
+    </div>
+    <div id="live-docify-badge" style="display:none;background:var(--vscode-badge-background);color:var(--vscode-badge-foreground);padding:4px 8px;border-radius:12px;font-size:11px;font-weight:600;margin-right:8px;">
+      Live Docify Mode
+    </div>
   </div>
 
   <div id="container">
@@ -280,6 +285,37 @@
         }
       }
     });
+  })();
+  </script>
+  <!-- 7) Live Docify Mode Badge Controller -->
+  <script nonce="{{nonce}}">
+  (function(){
+    var badge = document.getElementById('live-docify-badge');
+    
+    window.addEventListener('message', function(ev){
+      var msg = ev.data || {};
+      
+      if (msg.type === 'templateData' && msg.data) {
+        // Show or hide badge based on template mode
+        if (msg.data.isTemplateMode) {
+          if (badge) badge.style.display = 'block';
+        } else {
+          if (badge) badge.style.display = 'none';
+        }
+      } else if (msg.type === 'setData') {
+        // Hide badge when in regular architecture mode (setData means we're showing graph data)
+        if (badge) badge.style.display = 'none';
+      }
+    });
+    
+    // Also check initial state when page loads
+    setTimeout(function(){
+      // Request template data to check if we're in template mode
+      var vscodeApi = window.__vscodeApi || (typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi() : null);
+      if (vscodeApi && vscodeApi.postMessage) {
+        vscodeApi.postMessage({ type:'requestTemplateData' });
+      }
+    }, 100);
   })();
   </script>
 </body>

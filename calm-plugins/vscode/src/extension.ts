@@ -6,6 +6,7 @@ import { CalmTreeProvider } from './treeView'
 import { ModelIndex, detectCalmModel, loadCalmModel, toGraph } from './util/model'
 import { provideHovers, provideCodeLens } from './util/language'
 import { SchemaDirectory, initLogger } from '@finos/calm-shared'
+import { detectFileType, FileType } from './util/fileTypes'
 
 export function activate(context: vscode.ExtensionContext) {
     const output = vscode.window.createOutputChannel('CALM')
@@ -40,12 +41,23 @@ export function activate(context: vscode.ExtensionContext) {
     treeProvider.attach(treeView)
     context.subscriptions.push(treeView)
     
+    let currentPreview: CalmPreviewPanel | undefined
+    let currentModelIndex: ModelIndex | undefined
+    let refreshTimeout: NodeJS.Timeout | undefined
+    let isCurrentlyInTemplateMode: boolean = false
+
+    const config = () => vscode.workspace.getConfiguration('calm')
+
     // Function to get current TreeView selection
     const getCurrentSelection = () => treeView.selection?.[0]?.id
     
     treeView.onDidChangeSelection(async (ev) => {
         const id = ev.selection?.[0]?.id
         if (!id) return
+        // Don't process selection changes in template mode
+        if (isCurrentlyInTemplateMode && id === 'template-mode-message') {
+            return
+        }
         if (currentPreview) currentPreview.postSelect(id)
         const uri = currentPreview?.getCurrentUri()
         const fallbackDoc = vscode.window.activeTextEditor?.document
@@ -53,22 +65,23 @@ export function activate(context: vscode.ExtensionContext) {
         if (selDoc) revealById(selDoc, id)
     })
 
-    let currentPreview: CalmPreviewPanel | undefined
-    let currentModelIndex: ModelIndex | undefined
-    let refreshTimeout: NodeJS.Timeout | undefined
-
-    const config = () => vscode.workspace.getConfiguration('calm')
-
     const openPreview = vscode.commands.registerCommand('calm.openPreview', async () => {
         const editor = vscode.window.activeTextEditor
         if (!editor) return
         const doc = editor.document
-        if (!(doc.languageId === 'json' || doc.languageId === 'yaml' || doc.languageId === 'yml')) return
-
-        const text = doc.getText()
-        const detected = detectCalmModel(text)
-        if (!detected) {
-            vscode.window.showWarningMessage('This file does not look like a CALM model.')
+        
+        // Use file type detection to determine if this file is supported
+        const fileInfo = detectFileType(doc.uri.fsPath)
+        
+        if (fileInfo.type === FileType.ArchitectureFile && fileInfo.isValid) {
+            // Regular architecture file
+            output.appendLine(`[command] Opening preview for architecture file: ${doc.uri.fsPath}`)
+        } else if (fileInfo.type === FileType.TemplateFile && fileInfo.isValid) {
+            // Template file with valid architecture reference
+            output.appendLine(`[command] Opening preview for template file: ${doc.uri.fsPath} -> ${fileInfo.architecturePath}`)
+        } else {
+            // Not a valid CALM or template file
+            vscode.window.showWarningMessage('This file is not a CALM architecture file or a template file with architecture reference.')
             return
         }
 
@@ -104,11 +117,18 @@ export function activate(context: vscode.ExtensionContext) {
     )
 
     // Watch CALM files
+    // Watch architecture files
     const globs = config().get<string[]>('files.globs', ["calm/**/*.json", "calm/**/*.y?(a)ml"]) || ["calm/**/*.json", "calm/**/*.y?(a)ml"]
+    
+    // Watch template files  
+    const templateGlobs = config().get<string[]>('template.globs', ["**/*.md", "**/*.markdown", "**/*.hbs", "**/*.handlebars"]) || ["**/*.md", "**/*.markdown", "**/*.hbs", "**/*.handlebars"]
+    
+    const allGlobs = [...globs, ...templateGlobs]
+    
     const folders = vscode.workspace.workspaceFolders ?? []
     if (folders.length > 0) {
         for (const folder of folders) {
-            for (const g of globs) {
+            for (const g of allGlobs) {
                 const watcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(folder, g))
                 watcher.onDidChange((uri: vscode.Uri) => maybeRefresh(uri))
                 watcher.onDidCreate((uri: vscode.Uri) => maybeRefresh(uri))
@@ -120,8 +140,10 @@ export function activate(context: vscode.ExtensionContext) {
 
     vscode.workspace.onDidSaveTextDocument((doc: vscode.TextDocument) => maybeRefresh(doc.uri))
     vscode.workspace.onDidOpenTextDocument((doc: vscode.TextDocument) => {
-        if ((doc.languageId === 'json' || doc.languageId === 'yaml' || doc.languageId === 'yml') && config().get('preview.autoOpen', false)) {
-            if (detectCalmModel(doc.getText())) {
+        if (config().get('preview.autoOpen', false)) {
+            const fileInfo = detectFileType(doc.uri.fsPath)
+            if ((fileInfo.type === FileType.ArchitectureFile && fileInfo.isValid) || 
+                (fileInfo.type === FileType.TemplateFile && fileInfo.isValid)) {
                 vscode.commands.executeCommand('calm.openPreview')
             }
         }
@@ -131,12 +153,13 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.window.onDidChangeActiveTextEditor((editor) => {
         if (!editor || !currentPreview) return
         const doc = editor.document
-        if (!(doc.languageId === 'json' || doc.languageId === 'yaml' || doc.languageId === 'yml')) return
         
-        const text = doc.getText()
-        const detected = detectCalmModel(text)
-        if (detected) {
-            output.appendLine('[extension] Detected CALM file switch, updating preview: ' + doc.uri.fsPath)
+        // Use file type detection instead of language ID checking
+        const fileInfo = detectFileType(doc.uri.fsPath)
+        
+        if ((fileInfo.type === FileType.ArchitectureFile && fileInfo.isValid) || 
+            (fileInfo.type === FileType.TemplateFile && fileInfo.isValid)) {
+            output.appendLine('[extension] Detected file switch, updating preview: ' + doc.uri.fsPath)
             // Update the preview to show the new file
             currentPreview.reveal(doc.uri)
             refreshForDocument(doc)
@@ -162,9 +185,53 @@ export function activate(context: vscode.ExtensionContext) {
     async function refreshForDocument(doc: vscode.TextDocument) {
         try {
             output.appendLine('[extension] Refreshing for document: ' + doc.uri.fsPath)
-            const text = doc.getText()
-            const model = loadCalmModel(text)
-            currentModelIndex = new ModelIndex(doc, model)
+            
+            // Detect file type
+            const fileInfo = detectFileType(doc.uri.fsPath)
+            output.appendLine(`[extension] File type detected: ${fileInfo.type}, valid: ${fileInfo.isValid}`)
+            
+            let model: any
+            let text: string
+            let isTemplateMode = false
+            
+            if (fileInfo.type === FileType.TemplateFile && fileInfo.isValid && fileInfo.architecturePath) {
+                // Template file mode: read the referenced architecture file
+                output.appendLine(`[extension] Template file detected, reading architecture: ${fileInfo.architecturePath}`)
+                
+                if (!fs.existsSync(fileInfo.architecturePath)) {
+                    output.appendLine(`[extension] Architecture file not found: ${fileInfo.architecturePath}`)
+                    return
+                }
+                
+                text = fs.readFileSync(fileInfo.architecturePath, 'utf8')
+                model = loadCalmModel(text)
+                isTemplateMode = true
+            } else if (fileInfo.type === FileType.ArchitectureFile && fileInfo.isValid) {
+                // Regular architecture file
+                text = doc.getText()
+                model = loadCalmModel(text)
+                isTemplateMode = false
+            } else {
+                // Not a valid CALM or template file, skip
+                output.appendLine('[extension] File is not a valid CALM architecture or template file, skipping refresh')
+                return
+            }
+            
+            // Update tree view mode
+            treeProvider.setTemplateMode(isTemplateMode)
+            
+            // Create appropriate document for ModelIndex
+            let docForIndex = doc
+            if (fileInfo.type === FileType.TemplateFile && fileInfo.isValid && fileInfo.architecturePath) {
+                // For template files, create a mock document object that returns the architecture file content
+                docForIndex = {
+                    getText: () => text,
+                    positionAt: (offset: number) => doc.positionAt(0), // Fallback to start of template file
+                    uri: doc.uri // Keep the template file URI for reference
+                } as any
+            }
+            
+            currentModelIndex = new ModelIndex(docForIndex, model)
             treeProvider.setModel(currentModelIndex)
             const graph = toGraph(model, config())
             currentPreview?.setData({ graph, selectedId: undefined, settings: getPreviewSettings() })
@@ -180,6 +247,9 @@ export function activate(context: vscode.ExtensionContext) {
             }
         } catch (e: any) {
             output.appendLine(`Failed to refresh preview: ${e?.message || e}`)
+            if (e?.stack) {
+                output.appendLine(`Stack trace: ${e.stack}`)
+            }
         }
     }
 

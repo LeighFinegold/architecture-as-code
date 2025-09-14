@@ -220,14 +220,13 @@ body {
     max-width: 100%;
     overflow: auto;
     margin-bottom: 16px;
-    border: 1px solid var(--vscode-editorWidget-border, #d1d9e0);
-    border-radius: 6px;
+    font-variant: tabular-nums;
 }
 
-#docify-content table th, #docify-content table td {
+#docify-content table th,
+#docify-content table td {
     padding: 6px 13px;
     border: 1px solid var(--vscode-editorWidget-border, #d1d9e0);
-    text-align: left;
 }
 
 #docify-content table th {
@@ -235,8 +234,13 @@ body {
     background-color: var(--vscode-editorWidget-background, #f6f8fa);
 }
 
+#docify-content table tr {
+    background-color: var(--vscode-editor-background, #ffffff);
+    border-top: 1px solid var(--vscode-editorWidget-border, #d1d9e0);
+}
+
 #docify-content table tr:nth-child(2n) {
-    background-color: var(--vscode-editorWidget-background, rgba(175,184,193,0.1));
+    background-color: var(--vscode-editorWidget-background, #f6f8fa);
 }
 
 #docify-content hr {
