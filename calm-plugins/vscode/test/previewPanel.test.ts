@@ -136,11 +136,11 @@ describe('CalmPreviewPanel readiness', () => {
                 { "unique-id": "test-flow", name: "Test Flow" }
             ]
         }
-        
+
         // Write test model to temporary file
         const testModelPath = '/tmp/ext/test-model.json'
         require('fs').writeFileSync(testModelPath, JSON.stringify(testModelData, null, 2))
-        
+
         const p = CalmPreviewPanel.createOrShow(ctx as any, (vscode as any).Uri.file(testModelPath), cfg as any, out as any)
 
         // Set graph data with nodes and edges

@@ -46,8 +46,8 @@ export class CalmTreeProvider implements vscode.TreeDataProvider<CalmItem> {
         if (this.isTemplateMode) {
             if (!element) {
                 const messageItem = new CalmItem(
-                    'Navigation unavailable in Live Docify mode', 
-                    vscode.TreeItemCollapsibleState.None, 
+                    'Navigation unavailable in Live Docify mode',
+                    vscode.TreeItemCollapsibleState.None,
                     'template-mode-message'
                 )
                 messageItem.tooltip = 'Switch to an architecture file to use navigation features'

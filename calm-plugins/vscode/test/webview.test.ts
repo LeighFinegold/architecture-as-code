@@ -1,8 +1,8 @@
 /* @vitest-environment jsdom */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-// Minimal VS Code API shim
-;(global as any).acquireVsCodeApi = () => ({ postMessage: vi.fn() })
+    // Minimal VS Code API shim
+    ; (global as any).acquireVsCodeApi = () => ({ postMessage: vi.fn() })
 
 describe('webview render pipeline', () => {
     beforeEach(() => {

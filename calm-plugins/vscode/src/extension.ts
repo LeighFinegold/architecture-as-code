@@ -40,7 +40,7 @@ export function activate(context: vscode.ExtensionContext) {
     const treeView = vscode.window.createTreeView('calmSidebar', { treeDataProvider: treeProvider })
     treeProvider.attach(treeView)
     context.subscriptions.push(treeView)
-    
+
     let currentPreview: CalmPreviewPanel | undefined
     let currentModelIndex: ModelIndex | undefined
     let refreshTimeout: NodeJS.Timeout | undefined
@@ -50,7 +50,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     // Function to get current TreeView selection
     const getCurrentSelection = () => treeView.selection?.[0]?.id
-    
+
     treeView.onDidChangeSelection(async (ev) => {
         const id = ev.selection?.[0]?.id
         if (!id) return
@@ -69,10 +69,10 @@ export function activate(context: vscode.ExtensionContext) {
         const editor = vscode.window.activeTextEditor
         if (!editor) return
         const doc = editor.document
-        
+
         // Use file type detection to determine if this file is supported
         const fileInfo = detectFileType(doc.uri.fsPath)
-        
+
         if (fileInfo.type === FileType.ArchitectureFile && fileInfo.isValid) {
             // Regular architecture file
             output.appendLine(`[command] Opening preview for architecture file: ${doc.uri.fsPath}`)
@@ -119,12 +119,12 @@ export function activate(context: vscode.ExtensionContext) {
     // Watch CALM files
     // Watch architecture files
     const globs = config().get<string[]>('files.globs', ["calm/**/*.json", "calm/**/*.y?(a)ml"]) || ["calm/**/*.json", "calm/**/*.y?(a)ml"]
-    
+
     // Watch template files  
     const templateGlobs = config().get<string[]>('template.globs', ["**/*.md", "**/*.markdown", "**/*.hbs", "**/*.handlebars"]) || ["**/*.md", "**/*.markdown", "**/*.hbs", "**/*.handlebars"]
-    
+
     const allGlobs = [...globs, ...templateGlobs]
-    
+
     const folders = vscode.workspace.workspaceFolders ?? []
     if (folders.length > 0) {
         for (const folder of folders) {
@@ -142,22 +142,22 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.workspace.onDidOpenTextDocument((doc: vscode.TextDocument) => {
         if (config().get('preview.autoOpen', false)) {
             const fileInfo = detectFileType(doc.uri.fsPath)
-            if ((fileInfo.type === FileType.ArchitectureFile && fileInfo.isValid) || 
+            if ((fileInfo.type === FileType.ArchitectureFile && fileInfo.isValid) ||
                 (fileInfo.type === FileType.TemplateFile && fileInfo.isValid)) {
                 vscode.commands.executeCommand('calm.openPreview')
             }
         }
     })
-    
+
     // Detect when user switches to a different file
     vscode.window.onDidChangeActiveTextEditor((editor) => {
         if (!editor || !currentPreview) return
         const doc = editor.document
-        
+
         // Use file type detection instead of language ID checking
         const fileInfo = detectFileType(doc.uri.fsPath)
-        
-        if ((fileInfo.type === FileType.ArchitectureFile && fileInfo.isValid) || 
+
+        if ((fileInfo.type === FileType.ArchitectureFile && fileInfo.isValid) ||
             (fileInfo.type === FileType.TemplateFile && fileInfo.isValid)) {
             output.appendLine('[extension] Detected file switch, updating preview: ' + doc.uri.fsPath)
             // Update the preview to show the new file
@@ -165,7 +165,7 @@ export function activate(context: vscode.ExtensionContext) {
             refreshForDocument(doc)
         }
     })
-    
+
     vscode.window.onDidChangeTextEditorSelection((ev: vscode.TextEditorSelectionChangeEvent) => {
         if (!currentPreview || !currentModelIndex) return
         const id = currentModelIndex.idAt(ev.textEditor.document, ev.selections[0].active)
@@ -185,24 +185,24 @@ export function activate(context: vscode.ExtensionContext) {
     async function refreshForDocument(doc: vscode.TextDocument) {
         try {
             output.appendLine('[extension] Refreshing for document: ' + doc.uri.fsPath)
-            
+
             // Detect file type
             const fileInfo = detectFileType(doc.uri.fsPath)
             output.appendLine(`[extension] File type detected: ${fileInfo.type}, valid: ${fileInfo.isValid}`)
-            
+
             let model: any
             let text: string
             let isTemplateMode = false
-            
+
             if (fileInfo.type === FileType.TemplateFile && fileInfo.isValid && fileInfo.architecturePath) {
                 // Template file mode: read the referenced architecture file
                 output.appendLine(`[extension] Template file detected, reading architecture: ${fileInfo.architecturePath}`)
-                
+
                 if (!fs.existsSync(fileInfo.architecturePath)) {
                     output.appendLine(`[extension] Architecture file not found: ${fileInfo.architecturePath}`)
                     return
                 }
-                
+
                 text = fs.readFileSync(fileInfo.architecturePath, 'utf8')
                 model = loadCalmModel(text)
                 isTemplateMode = true
@@ -216,10 +216,10 @@ export function activate(context: vscode.ExtensionContext) {
                 output.appendLine('[extension] File is not a valid CALM architecture or template file, skipping refresh')
                 return
             }
-            
+
             // Update tree view mode
             treeProvider.setTemplateMode(isTemplateMode)
-            
+
             // Create appropriate document for ModelIndex
             let docForIndex = doc
             if (fileInfo.type === FileType.TemplateFile && fileInfo.isValid && fileInfo.architecturePath) {
@@ -230,18 +230,18 @@ export function activate(context: vscode.ExtensionContext) {
                     uri: doc.uri // Keep the template file URI for reference
                 } as any
             }
-            
+
             currentModelIndex = new ModelIndex(docForIndex, model)
             treeProvider.setModel(currentModelIndex)
             const graph = toGraph(model, config())
             currentPreview?.setData({ graph, selectedId: undefined, settings: getPreviewSettings() })
-            
+
             // Clear the current selection since we switched files
             if (currentPreview) {
                 currentPreview.postSelect('')  // Clear selection
                 output.appendLine('[extension] Cleared TreeView selection for new file')
             }
-            
+
             if (!currentPreview && config().get('preview.autoOpen', false)) {
                 vscode.commands.executeCommand('calm.openPreview')
             }

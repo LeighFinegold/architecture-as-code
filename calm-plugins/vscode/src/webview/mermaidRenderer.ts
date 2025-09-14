@@ -19,6 +19,20 @@ export default class MermaidRenderer {
                 startOnLoad: false,
                 securityLevel: 'strict',
                 theme: 'base',
+                flowchart: {
+                    // Better handling of long labels
+                    curve: 'basis',
+                    padding: 20,
+                    nodeSpacing: 50,
+                    rankSpacing: 80,
+                    // Allow wrapping for edge labels
+                    htmlLabels: true,
+                    // Improve text wrapping
+                    useMaxWidth: true
+                },
+                // Global settings for better rendering
+                maxTextSize: 50000,
+                maxEdges: 500
             })
             this.mermaidReady = true
         }

@@ -36,8 +36,14 @@
       <button class="tab-button" role="tab" data-target="template-panel">Template</button>
       <button class="tab-button" role="tab" data-target="model-panel">Model</button>
     </div>
-    <div id="live-docify-badge" style="display:none;background:var(--vscode-badge-background);color:var(--vscode-badge-foreground);padding:4px 8px;border-radius:12px;font-size:11px;font-weight:600;margin-right:8px;">
-      Live Docify Mode
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div id="show-labels-control" style="display:none;align-items:center;gap:6px;font-size:12px;">
+        <input type="checkbox" id="show-labels-checkbox" checked>
+        <label for="show-labels-checkbox" style="color:var(--vscode-editor-foreground);user-select:none;cursor:pointer;">Show Labels</label>
+      </div>
+      <div id="live-docify-badge" style="display:none;background:var(--vscode-badge-background);color:var(--vscode-badge-foreground);padding:4px 8px;border-radius:12px;font-size:11px;font-weight:600;">
+        Live Docify Mode
+      </div>
     </div>
   </div>
 
@@ -316,6 +322,48 @@
         vscodeApi.postMessage({ type:'requestTemplateData' });
       }
     }, 100);
+  })();
+  </script>
+
+  <!-- 8) Show Labels Checkbox Controller -->
+  <script nonce="{{nonce}}">
+  (function(){
+    var showLabelsControl = document.getElementById('show-labels-control');
+    var showLabelsCheckbox = document.getElementById('show-labels-checkbox');
+    var isTemplateMode = false;
+    
+    // Listen for template mode changes
+    window.addEventListener('message', function(ev){
+      var msg = ev.data || {};
+      
+      if (msg.type === 'templateData' && msg.data) {
+        isTemplateMode = msg.data.isTemplateMode;
+        // Hide show-labels control in template mode
+        if (showLabelsControl) {
+          showLabelsControl.style.display = isTemplateMode ? 'none' : 'flex';
+        }
+      } else if (msg.type === 'setData') {
+        isTemplateMode = false;
+        // Show show-labels control in regular architecture mode
+        if (showLabelsControl) {
+          showLabelsControl.style.display = 'flex';
+        }
+      }
+    });
+    
+    // Handle checkbox changes
+    if (showLabelsCheckbox) {
+      showLabelsCheckbox.addEventListener('change', function() {
+        var vscodeApi = window.__vscodeApi || (typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi() : null);
+        if (vscodeApi && vscodeApi.postMessage) {
+          // Send message to backend to regenerate with/without labels
+          vscodeApi.postMessage({ 
+            type: 'toggleLabels', 
+            showLabels: showLabelsCheckbox.checked 
+          });
+        }
+      });
+    }
   })();
   </script>
 </body>

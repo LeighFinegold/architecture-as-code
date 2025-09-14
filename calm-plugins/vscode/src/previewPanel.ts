@@ -34,6 +34,7 @@ export class CalmPreviewPanel {
   private isTemplateMode: boolean = false
   private templateFilePath: string | undefined
   private architectureFilePath: string | undefined
+  private showLabels: boolean = true // Default to showing labels
 
   static createOrShow(
     context: vscode.ExtensionContext,
@@ -104,6 +105,9 @@ export class CalmPreviewPanel {
         } else if (msg.type === 'requestTemplateData') {
           this.output.appendLine('[preview] requestTemplateData received')
           this.handleRequestTemplateData()
+        } else if (msg.type === 'toggleLabels') {
+          this.output.appendLine(`[preview] toggleLabels received: showLabels=${msg.showLabels}`)
+          this.handleToggleLabels(msg.showLabels)
         } else if (msg.type === 'log' && msg.message) {
           this.output.appendLine(`[webview] ${msg.message}`)
         } else if (msg.type === 'error' && msg.message) {
@@ -122,43 +126,43 @@ export class CalmPreviewPanel {
   reveal(uri: vscode.Uri) {
     const previousUri = this.currentUri
     this.currentUri = uri
-    
+
     // If switching to a different file, clear the current selection
     if (previousUri && previousUri.fsPath !== uri.fsPath) {
       this.currentSelectedId = undefined
       this.output.appendLine(`[preview] Switched from ${previousUri.fsPath} to ${uri.fsPath}, clearing selection`)
     }
-    
+
     // Detect if this is a template file
     const fileInfo = detectFileType(uri.fsPath)
     this.isTemplateMode = fileInfo.type === FileType.TemplateFile && fileInfo.isValid
-    
+
     this.output.appendLine(`[preview] reveal() - File: ${uri.fsPath}`)
     this.output.appendLine(`[preview] reveal() - fileInfo: type=${fileInfo.type}, isValid=${fileInfo.isValid}, architecturePath=${fileInfo.architecturePath}`)
     this.output.appendLine(`[preview] reveal() - isTemplateMode set to: ${this.isTemplateMode}`)
-    
+
     if (this.isTemplateMode) {
       this.templateFilePath = uri.fsPath
       this.architectureFilePath = fileInfo.architecturePath
       this.output.appendLine(`[preview] Template mode activated: ${this.templateFilePath} -> ${this.architectureFilePath}`)
-      
+
       // When switching to template mode, send templateData with isTemplateMode: true to show badge
-      this.panel.webview.postMessage({ 
-        type: 'templateData', 
+      this.panel.webview.postMessage({
+        type: 'templateData',
         data: { isTemplateMode: true }
       })
     } else {
       this.templateFilePath = undefined
       this.architectureFilePath = undefined
       this.output.appendLine(`[preview] Architecture mode: ${uri.fsPath}`)
-      
+
       // When switching to architecture mode, send templateData with isTemplateMode: false to hide badge
-      this.panel.webview.postMessage({ 
-        type: 'templateData', 
+      this.panel.webview.postMessage({
+        type: 'templateData',
         data: { isTemplateMode: false }
       })
     }
-    
+
     this.panel.reveal(vscode.ViewColumn.Beside)
   }
 
@@ -184,7 +188,7 @@ export class CalmPreviewPanel {
     this.lastData = { ...payload, settings, positions, viewport }
     if (this.ready) {
       this.panel.webview.postMessage({ type: 'setData', ...this.lastData })
-      
+
       // In template mode, also refresh the template tab automatically
       if (this.isTemplateMode) {
         this.output.appendLine('[preview] Template mode: Auto-refreshing template tab')
@@ -199,7 +203,7 @@ export class CalmPreviewPanel {
     this.lastSelectedId = id || undefined     // Also store for model filtering
     this.output.appendLine(`[preview] TreeView selection changed to: ${id || 'none'}`)
     this.panel.webview.postMessage({ type: 'select', id })
-    
+
     // Also trigger docify refresh if docify tab is active
     this.panel.webview.postMessage({ type: 'refreshDocifyIfActive' })
   }
@@ -225,11 +229,11 @@ export class CalmPreviewPanel {
     // Determine the architecture file to use
     let archUri: vscode.Uri
     let templateContentToUse: string | undefined
-    
+
     if (this.isTemplateMode && this.architectureFilePath && this.templateFilePath) {
       // Template mode: use referenced architecture file and template content
       archUri = vscode.Uri.file(this.architectureFilePath)
-      
+
       // Always use the template file content in template mode
       const templateParsed = parseFrontMatter(this.templateFilePath)
       if (templateParsed) {
@@ -251,7 +255,7 @@ export class CalmPreviewPanel {
       selectedId = this.getCurrentTreeSelection()
       this.output.appendLine('[preview] Got current TreeView selection: ' + (selectedId || 'none'))
     }
-    
+
     // If still no selection, use the stored current selection
     if (!selectedId) {
       selectedId = this.currentSelectedId
@@ -259,7 +263,7 @@ export class CalmPreviewPanel {
     }
 
     let templatePath = templatePathRaw
-    
+
     // In template mode, always use the template file content, ignore templatePathRaw
     if (this.isTemplateMode && templateContentToUse) {
       templatePath = undefined  // Force using our template content
@@ -276,7 +280,7 @@ export class CalmPreviewPanel {
     if (!templatePath) {
       const autoTpl = path.join(tmpDir, 'auto-template.hbs')
       let templateContent: string
-      
+
       if (templateContentToUse) {
         // Use content from template file
         templateContent = templateContentToUse
@@ -284,7 +288,7 @@ export class CalmPreviewPanel {
         // Generate template based on selection
         templateContent = await this.generateTemplateContent(selectedId)
       }
-      
+
       await fs.promises.writeFile(autoTpl, templateContent, 'utf8')
       templatePath = autoTpl
       this.output.appendLine('[preview] Generated template: ' + templateContent.replace(/\n/g, '\\n'))
@@ -340,16 +344,16 @@ export class CalmPreviewPanel {
     try {
       // Debug logging
       this.output.appendLine(`[preview] handleRequestModelData - isTemplateMode: ${this.isTemplateMode}, architectureFilePath: ${this.architectureFilePath}`)
-      
+
       // Re-detect file type to ensure we have current information
       const fileInfo = detectFileType(this.currentUri.fsPath)
       const isCurrentlyTemplateMode = fileInfo.type === FileType.TemplateFile && fileInfo.isValid
-      
+
       this.output.appendLine(`[preview] handleRequestModelData - re-detected: type=${fileInfo.type}, isValid=${fileInfo.isValid}, isTemplateMode=${isCurrentlyTemplateMode}`)
-      
+
       // Determine which file to read
       let fileToRead: string
-      
+
       if (isCurrentlyTemplateMode && fileInfo.architecturePath) {
         fileToRead = fileInfo.architecturePath
         this.output.appendLine(`[preview] Reading architecture file for template mode: ${fileToRead}`)
@@ -361,7 +365,7 @@ export class CalmPreviewPanel {
       // Read the architecture file and send its content
       const content = fs.readFileSync(fileToRead, 'utf8')
       let fullModelData: any
-      
+
       if (fileToRead.endsWith('.json')) {
         fullModelData = JSON.parse(content)
       } else if (fileToRead.endsWith('.yml') || fileToRead.endsWith('.yaml')) {
@@ -381,7 +385,7 @@ export class CalmPreviewPanel {
 
       // Filter model data based on current selection
       const filteredData = this.filterModelDataBySelection(fullModelData, this.lastSelectedId)
-      
+
       this.panel.webview.postMessage({ type: 'modelData', data: filteredData })
       this.output.appendLine(`[preview] Sent filtered model data for selection: ${this.lastSelectedId || 'none'}`)
     } catch (error) {
@@ -394,7 +398,7 @@ export class CalmPreviewPanel {
     try {
       let templateContent: string
       let templateName: string
-      
+
       if (this.isTemplateMode && this.templateFilePath) {
         // Template mode: show the actual template file content
         const templateParsed = parseFrontMatter(this.templateFilePath)
@@ -414,9 +418,9 @@ export class CalmPreviewPanel {
         templateName = this.getTemplateNameForSelection(this.lastSelectedId)
         this.output.appendLine(`[preview] Generated template: ${templateName} for selection: ${this.lastSelectedId || 'none'}`)
       }
-      
-      this.panel.webview.postMessage({ 
-        type: 'templateData', 
+
+      this.panel.webview.postMessage({
+        type: 'templateData',
         data: {
           content: templateContent,
           name: templateName,
@@ -427,6 +431,22 @@ export class CalmPreviewPanel {
     } catch (error) {
       this.output.appendLine('[preview] Error reading template data: ' + String(error))
       this.panel.webview.postMessage({ type: 'templateData', data: null })
+    }
+  }
+
+  private async handleToggleLabels(showLabels: boolean) {
+    this.output.appendLine(`[preview] handleToggleLabels - showLabels: ${showLabels}`)
+    this.showLabels = showLabels
+
+    // Only regenerate if we're in architecture mode (not template mode)
+    if (!this.isTemplateMode && this.currentUri) {
+      this.output.appendLine('[preview] Regenerating docify content with updated label setting')
+      // Trigger a full docify regeneration with the new label settings
+      try {
+        await this.handleRunDocify(undefined, this.currentSelectedId)
+      } catch (error) {
+        this.output.appendLine(`[preview] Error regenerating docify content: ${error}`)
+      }
     }
   }
 
@@ -551,12 +571,12 @@ export class CalmPreviewPanel {
     if (this.isTemplateMode && this.architectureFilePath) {
       modelFileToCheck = this.architectureFilePath
     }
-    
+
     if (modelFileToCheck) {
       try {
         const content = fs.readFileSync(modelFileToCheck, 'utf8')
         let modelData: any
-        
+
         if (modelFileToCheck.endsWith('.json')) {
           modelData = JSON.parse(content)
         } else if (modelFileToCheck.endsWith('.yml') || modelFileToCheck.endsWith('.yaml')) {
@@ -585,12 +605,30 @@ export class CalmPreviewPanel {
   private async loadTemplate(templateName: string): Promise<string> {
     try {
       const templatePath = path.join(this.context.extensionUri.fsPath, 'templates', templateName)
-      return await fs.promises.readFile(templatePath, 'utf8')
+      let templateContent = await fs.promises.readFile(templatePath, 'utf8')
+
+      // Process the template to add edge-labels parameter if needed
+      templateContent = this.processTemplateForLabels(templateContent)
+
+      return templateContent
     } catch (error) {
       this.output.appendLine(`[template] Failed to load ${templateName}: ${error}`)
-      // Fallback to inline template
-      return '{{block-architecture}}'
+      // Fallback to inline template with edge-labels parameter
+      const edgeLabelsParam = this.showLabels ? '' : ' edge-labels="none"'
+      return `{{block-architecture${edgeLabelsParam}}}`
     }
+  }
+
+  private processTemplateForLabels(templateContent: string): string {
+    if (!this.showLabels) {
+      // Replace {{block-architecture}} with {{block-architecture edge-labels="none"}}
+      // Handle various spacing patterns
+      templateContent = templateContent.replace(
+        /\{\{block-architecture(\s*)\}\}/g,
+        '{{block-architecture$1 edge-labels="none"}}'
+      )
+    }
+    return templateContent
   }
 
   private getHtml() {
@@ -598,7 +636,7 @@ export class CalmPreviewPanel {
     let version = 'unknown'
     try {
       const pkgUri = vscode.Uri.joinPath(this.context.extensionUri, 'package.json')
-       
+
       const pkg = require(pkgUri.fsPath)
       if (pkg && pkg.version) version = String(pkg.version)
     } catch { }
