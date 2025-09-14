@@ -21,6 +21,7 @@ export default defineConfig([
             'cytoscape-fcose',
             'lodash',
             '@finos/calm-shared',
+            '@finos/calm-models',
             'markdown-it',
             'mermaid',
             'jsdom'

@@ -2,7 +2,7 @@
     "name": "calm-vscode-plugin",
     "displayName": "CALM Preview & Tools",
     "description": "Live-visualize CALM architecture models, validate, and generate docs.",
-    "version": "0.1.36",
+    "version": "0.1.38",
     "publisher": "local",
     "repository": {
         "type": "git",
@@ -135,6 +135,7 @@
         "cytoscape-fcose": "^2.2.0",
         "yaml": "^2.5.1",
         "@finos/calm-shared": "file:../../shared",
+        "@finos/calm-models": "file:../../calm-models",
         "markdown-it": "^13.0.1",
         "mermaid": "^10.4.0",
         "jsdom": "^22.1.0"
