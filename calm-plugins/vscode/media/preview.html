@@ -32,19 +32,17 @@
 
   <div class="tabs" role="tablist" aria-label="Preview Tabs">
     <button class="tab-button active" role="tab" data-target="docify-panel">Docify</button>
-    <button class="tab-button" role="tab" data-target="validation-panel">Validation</button>
+    <button class="tab-button" role="tab" data-target="model-panel">Model</button>
   </div>
 
   <div id="container">
 
     <div id="docify-panel" class="tab-content active">
-      <h2>Docify</h2>
       <div id="docify-content"></div>
     </div>
 
-    <div id="validation-panel" class="tab-content">
-      <h2>Validation</h2>
-      <div id="validation-content"></div>
+    <div id="model-panel" class="tab-content">
+      <div id="model-content"></div>
     </div>
   </div>
 
@@ -170,6 +168,54 @@
             try { vscodeApi.postMessage({ type:'log', message:'docify-auto-refresh-triggered' }); } catch(e){}
           }
           setTimeout(triggerDocify, 100); // Small delay to ensure selection is processed
+        }
+      }
+    });
+  })();
+  </script>
+
+  <!-- 5) Model tab: display the JSON architecture model -->
+  <script nonce="{{nonce}}">
+  (function(){
+    var vscodeApi = window.__vscodeApi || (typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi() : null);
+
+    function isModelActive(){
+      var panel = document.getElementById('model-panel');
+      return panel && panel.classList.contains('active');
+    }
+
+    function requestModelData(){
+      if (vscodeApi && vscodeApi.postMessage) {
+        vscodeApi.postMessage({ type:'requestModelData' });
+      }
+    }
+
+    var modelButton = Array.prototype.find.call(document.querySelectorAll('.tab-button'), function(b){
+      return b.getAttribute('data-target') === 'model-panel';
+    });
+    if (modelButton) {
+      modelButton.addEventListener('click', function(){
+        setTimeout(requestModelData, 0); // run after tab becomes active
+      });
+    }
+
+    window.addEventListener('message', function(ev){
+      var msg = ev.data || {};
+      var content = document.getElementById('model-content');
+      function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
+
+      if (msg.type === 'modelData') {
+        if (!content) return;
+        if (msg.data) {
+          var jsonStr = JSON.stringify(msg.data, null, 2);
+          content.innerHTML = '<pre style="font-family:monospace;font-size:12px;white-space:pre-wrap;margin:0;padding:12px;overflow:auto;">'+esc(jsonStr)+'</pre>';
+        } else {
+          content.innerHTML = '<div style="color:var(--vscode-editorWarning-foreground);padding:12px;">No model data available</div>';
+        }
+      } else if (msg.type === 'select') {
+        // Auto-refresh model data when selection changes (if model tab is active)
+        if (isModelActive()) {
+          setTimeout(requestModelData, 100); // Small delay to ensure selection is processed
         }
       }
     });

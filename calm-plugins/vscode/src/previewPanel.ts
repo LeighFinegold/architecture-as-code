@@ -28,6 +28,7 @@ export class CalmPreviewPanel {
     }
     | undefined
   private currentUri: vscode.Uri | undefined
+  private lastSelectedId: string | undefined
 
   static createOrShow(
     context: vscode.ExtensionContext,
@@ -92,6 +93,9 @@ export class CalmPreviewPanel {
           this.handleRunDocify(msg.templatePath, this.currentSelectedId).catch(e => {
             this.panel.webview.postMessage({ type: 'docifyError', message: String(e?.message || e) })
           })
+        } else if (msg.type === 'requestModelData') {
+          this.output.appendLine('[preview] requestModelData received')
+          this.handleRequestModelData()
         } else if (msg.type === 'log' && msg.message) {
           this.output.appendLine(`[webview] ${msg.message}`)
         } else if (msg.type === 'error' && msg.message) {
@@ -146,6 +150,7 @@ export class CalmPreviewPanel {
 
   postSelect(id: string) {
     this.currentSelectedId = id || undefined  // Track the current selection, treat empty string as undefined
+    this.lastSelectedId = id || undefined     // Also store for model filtering
     this.output.appendLine(`[preview] TreeView selection changed to: ${id || 'none'}`)
     this.panel.webview.postMessage({ type: 'select', id })
     
@@ -241,6 +246,79 @@ export class CalmPreviewPanel {
       format: content.trim().startsWith('<') ? 'html' : 'markdown',
       sourceFile: outputPath || outFile,
     })
+  }
+
+  private handleRequestModelData() {
+    if (!this.currentUri) {
+      this.panel.webview.postMessage({ type: 'modelData', data: null })
+      return
+    }
+
+    try {
+      // Read the current CALM file and send its content
+      const content = fs.readFileSync(this.currentUri.fsPath, 'utf8')
+      let fullModelData: any
+      
+      if (this.currentUri.fsPath.endsWith('.json')) {
+        fullModelData = JSON.parse(content)
+      } else if (this.currentUri.fsPath.endsWith('.yml') || this.currentUri.fsPath.endsWith('.yaml')) {
+        // Use YAML parsing if available
+        try {
+          const yaml = require('yaml')
+          fullModelData = yaml.parse(content)
+        } catch {
+          // Fallback: send raw content if YAML parsing fails
+          this.panel.webview.postMessage({ type: 'modelData', data: { raw: content, format: 'yaml' } })
+          return
+        }
+      } else {
+        this.panel.webview.postMessage({ type: 'modelData', data: { raw: content, format: 'unknown' } })
+        return
+      }
+
+      // Filter model data based on current selection
+      const filteredData = this.filterModelDataBySelection(fullModelData, this.lastSelectedId)
+      
+      this.panel.webview.postMessage({ type: 'modelData', data: filteredData })
+      this.output.appendLine(`[preview] Sent filtered model data for selection: ${this.lastSelectedId || 'none'}`)
+    } catch (error) {
+      this.output.appendLine('[preview] Error reading model data: ' + String(error))
+      this.panel.webview.postMessage({ type: 'modelData', data: null })
+    }
+  }
+
+  private filterModelDataBySelection(fullModelData: any, selectedId?: string): any {
+    if (!selectedId || selectedId.startsWith('group:')) {
+      // No selection or group selection - return full model
+      return fullModelData
+    }
+
+    // Check if it's a node
+    if (fullModelData.nodes) {
+      const node = fullModelData.nodes.find((n: any) => n['unique-id'] === selectedId)
+      if (node) {
+        return node
+      }
+    }
+
+    // Check if it's a relationship
+    if (fullModelData.relationships) {
+      const relationship = fullModelData.relationships.find((r: any) => r['unique-id'] === selectedId)
+      if (relationship) {
+        return relationship
+      }
+    }
+
+    // Check if it's a flow
+    if (fullModelData.flows) {
+      const flow = fullModelData.flows.find((f: any) => f['unique-id'] === selectedId)
+      if (flow) {
+        return flow
+      }
+    }
+
+    // If not found, return full model as fallback
+    return fullModelData
   }
 
   private async generateTemplateContent(selectedId?: string): Promise<string> {
