@@ -136,6 +136,20 @@ export class CalmPreviewPanel {
 
     // Update the HTML structure to include three sections for Cytoscape, Docify, and Validation
     private getHtml() {
+        // Read extension version from package.json on disk so we can show it in the preview
+        let version = 'unknown'
+        try {
+            // package.json is next to this source at project level during development; when packaged the version will be injected at build time
+            // Use extensionPath as base to find package.json in the extension source
+            const pkgUri = vscode.Uri.joinPath(this.context.extensionUri, 'package.json')
+            const pkg = require(pkgUri.fsPath)
+            if (pkg && pkg.version) version = String(pkg.version)
+        } catch (e) {
+            try { this.output.appendLine('[preview] Could not read package.json to get version: ' + String(e)) } catch { }
+        }
+        try {
+            this.output.appendLine(`[preview] Preview version: ${version}`)
+        } catch { /* noop */ }
         const webview = this.panel.webview;
         const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'dist', 'webview', 'main.global.js'));
         const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'media', 'preview.css'));
@@ -150,6 +164,11 @@ export class CalmPreviewPanel {
     <title>CALM Preview</title>
     </head>
     <body>
+        <!-- Header + Tabs -->
+        <header style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:1px solid rgba(0,0,0,0.08)">
+            <div style="font-weight:600">CALM Preview</div>
+            <div style="font-size:12px;color:var(--vscode-editor-foreground)">Version: ${version}</div>
+        </header>
         <!-- Tabs -->
         <!-- toolbar moved into Cytoscape tab -->
     
