@@ -1,4 +1,6 @@
 import * as vscode from 'vscode'
+import * as fs from 'fs'
+import * as path from 'path'
 import { CalmPreviewPanel } from './previewPanel'
 import { CalmTreeProvider } from './treeView'
 import { ModelIndex, detectCalmModel, loadCalmModel, toGraph } from './util/model'
@@ -7,6 +9,19 @@ import { SchemaDirectory, initLogger } from '@finos/calm-shared'
 
 export function activate(context: vscode.ExtensionContext) {
     const output = vscode.window.createOutputChannel('CALM')
+
+    // Log extension version so users can see which VSIX is running
+    try {
+        let extVersion = 'dev'
+        const pkgPath = path.join(context.extensionUri.fsPath, 'package.json')
+        if (fs.existsSync(pkgPath)) {
+            const pj = JSON.parse(fs.readFileSync(pkgPath, 'utf8'))
+            if (pj && pj.version) extVersion = pj.version
+        }
+        output.appendLine('CALM extension version: v' + extVersion)
+    } catch (e) {
+        output.appendLine('CALM extension version: (unknown)')
+    }
 
     // Confirm shared logger is bundled: create logger and log a message
     const logger = initLogger(true, 'vscode-ext')
