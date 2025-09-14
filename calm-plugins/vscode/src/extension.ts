@@ -19,7 +19,7 @@ export function activate(context: vscode.ExtensionContext) {
             if (pj && pj.version) extVersion = pj.version
         }
         output.appendLine('CALM extension version: v' + extVersion)
-    } catch (e) {
+    } catch {
         output.appendLine('CALM extension version: (unknown)')
     }
 

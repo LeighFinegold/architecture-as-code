@@ -2,7 +2,7 @@
     "name": "calm-vscode-plugin",
     "displayName": "CALM Preview & Tools",
     "description": "Live-visualize CALM architecture models, validate, and generate docs.",
-    "version": "0.1.43",
+    "version": "0.1.45",
     "publisher": "local",
     "repository": {
         "type": "git",
@@ -59,21 +59,6 @@
                     "default": false,
                     "description": "Automatically open CALM Preview when a CALM file is opened."
                 },
-                "calm.preview.layout": {
-                    "type": "string",
-                    "enum": [
-                        "fcose",
-                        "cose",
-                        "dagre"
-                    ],
-                    "default": "dagre",
-                    "description": "Graph layout algorithm for the preview."
-                },
-                "calm.preview.showLabels": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Show labels for nodes and edges in the preview."
-                },
                 "calm.files.globs": {
                     "type": "array",
                     "items": {
@@ -117,7 +102,6 @@
         "vscode:prepublish": "npm run build"
     },
     "devDependencies": {
-        "@types/cytoscape-fcose": "^2.2.4",
         "@types/node": "^22.0.0",
         "@vscode/dts": "^0.4.1",
         "@typescript-eslint/eslint-plugin": "^8.29.1",
@@ -130,9 +114,6 @@
         "vsce": "^2.15.0"
     },
     "dependencies": {
-        "cytoscape": "^3.28.1",
-        "cytoscape-dagre": "^2.5.0",
-        "cytoscape-fcose": "^2.2.0",
         "yaml": "^2.5.1",
         "@finos/calm-shared": "file:../../shared",
         "@finos/calm-models": "file:../../calm-models",

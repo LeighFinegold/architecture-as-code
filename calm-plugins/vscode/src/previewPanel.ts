@@ -318,7 +318,7 @@ export class CalmPreviewPanel {
     let version = 'unknown'
     try {
       const pkgUri = vscode.Uri.joinPath(this.context.extensionUri, 'package.json')
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
+       
       const pkg = require(pkgUri.fsPath)
       if (pkg && pkg.version) version = String(pkg.version)
     } catch { }

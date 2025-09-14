@@ -31,25 +31,13 @@
   </header>
 
   <div class="tabs" role="tablist" aria-label="Preview Tabs">
-    <button class="tab-button active" role="tab" data-target="cytoscape-panel">Cytoscape</button>
-    <button class="tab-button" role="tab" data-target="docify-panel">Docify</button>
+    <button class="tab-button active" role="tab" data-target="docify-panel">Docify</button>
     <button class="tab-button" role="tab" data-target="validation-panel">Validation</button>
   </div>
 
   <div id="container">
-    <div id="cytoscape-panel" class="tab-content active">
-      <h2>Cytoscape</h2>
-      <div id="toolbar">
-        <label><input type="checkbox" id="labels" checked /> Labels</label>
-        <label><input type="checkbox" id="descriptions" /> Descriptions</label>
-        <button id="fit">Fit</button>
-        <button id="reset">Reset</button>
-      </div>
-      <div id="cy"></div>
-      <pre id="detailsPre" aria-live="polite"></pre>
-    </div>
 
-    <div id="docify-panel" class="tab-content">
+    <div id="docify-panel" class="tab-content active">
       <h2>Docify</h2>
       <div id="docify-content"></div>
     </div>
@@ -94,12 +82,6 @@
         if (isActive) { c.removeAttribute('hidden'); c.setAttribute('aria-hidden','false'); }
         else { c.setAttribute('hidden',''); c.setAttribute('aria-hidden','true'); }
       });
-
-      if (targetId === 'cytoscape-panel') {
-        setTimeout(function(){
-          try{ window.dispatchEvent(new Event('visibilitychange')); window.dispatchEvent(new Event('resize')); }catch(e){}
-        }, 75);
-      }
     }
 
     contents.forEach(function(c){
@@ -118,7 +100,7 @@
   })();
   </script>
 
-  <!-- 3) Your webview bundle (Cytoscape + renderMarkdown exporter) -->
+  <!-- 3) Your webview bundle (renderMarkdown exporter) -->
   <script nonce="{{nonce}}" src="{{scriptUri}}"></script>
 
   <!-- 4) Docify glue: runs every time you click the Docify tab -->

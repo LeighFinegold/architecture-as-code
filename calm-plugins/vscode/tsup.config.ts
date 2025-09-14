@@ -16,9 +16,6 @@ export default defineConfig([
         external: ['vscode'],
         noExternal: [
             'yaml',
-            'cytoscape',
-            'cytoscape-dagre',
-            'cytoscape-fcose',
             'lodash',
             '@finos/calm-shared',
             '@finos/calm-models',

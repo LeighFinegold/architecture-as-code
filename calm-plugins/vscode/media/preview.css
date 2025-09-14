@@ -7,14 +7,6 @@ body {
     padding: 0;
     margin: 0;
 }
-/* Toolbar is now inside the Cytoscape panel */
-#cytoscape-panel #toolbar {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    padding: 6px 8px;
-    border-bottom: 1px solid var(--vscode-editorWidget-border, #ddd);
-}
 /* Make toolbar buttons match VS Code themed button styles */
 #toolbar button {
     appearance: none;
@@ -71,7 +63,7 @@ body {
     padding: 8px;
 }
 
-#cytoscape-panel, #docify-panel, #validation-panel {
+#docify-panel, #validation-panel {
     background: var(--vscode-editor-background, #ffffff);
     border: 1px solid var(--vscode-editorWidget-border, #ddd);
     border-radius: 6px;
@@ -83,24 +75,13 @@ body {
     height: 100%;
 }
 
-#cytoscape-panel h2, #docify-panel h2, #validation-panel h2 {
+#docify-panel h2, #validation-panel h2 {
     margin: 0 0 6px 0;
     font-size: 12px;
     color: var(--vscode-editor-foreground);
 }
 
 /* toolbar under the header */
-#cytoscape-panel #toolbar {
-    margin-top: 4px;
-    margin-bottom: 8px;
-}
-
-#cy {
-    width: 100%;
-    min-height: 240px;
-    flex: 1 1 auto;
-}
-
 #docify-content, #validation-content {
     overflow: auto;
     flex: 1 1 auto;
@@ -145,6 +126,4 @@ body {
 /* Honor the hidden attribute strictly to avoid leaking visuals */
 [hidden], .tab-content[hidden] { display: none !important; visibility: hidden !important; }
 
-/* Ensure Cytoscape canvas expands to available area when active and is hidden when parent is hidden */
-#cytoscape-panel.active #cy { height: 100%; visibility: visible; }
-#cytoscape-panel[hidden] #cy { visibility: hidden !important; }
+/* End of styles */

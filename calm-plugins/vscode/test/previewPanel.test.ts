@@ -146,23 +146,23 @@ describe('CalmPreviewPanel readiness', () => {
         const generateTemplate = (p as any).generateTemplateContent.bind(p)
 
         // Test default case (no selection)
-        expect(generateTemplate()).toBe('{{block-architecture}}')
+        expect(await generateTemplate()).toBe('{{block-architecture}}')
 
         // Test group selection
-        expect(generateTemplate('group:architecture')).toBe('{{block-architecture}}')
-        expect(generateTemplate('group:nodes')).toBe('{{block-architecture}}')
+        expect(await generateTemplate('group:architecture')).toBe('{{block-architecture}}')
+        expect(await generateTemplate('group:nodes')).toBe('{{block-architecture}}')
 
         // Test node selection
-        expect(generateTemplate('test-node')).toBe('{{block-architecture focus-nodes="test-node"}}')
+        expect(await generateTemplate('test-node')).toBe('{{block-architecture focus-nodes="test-node"}}')
 
         // Test relationship selection
-        expect(generateTemplate('test-relationship')).toBe('{{block-architecture focus-relationships="test-relationship"}}')
+        expect(await generateTemplate('test-relationship')).toBe('{{block-architecture focus-relationships="test-relationship"}}')
 
         // Test flow selection
-        expect(generateTemplate('test-flow')).toBe('{{block-architecture focus-flows="test-flow"}}')
+        expect(await generateTemplate('test-flow')).toBe('{{block-architecture focus-flows="test-flow"}}')
 
         // Test unknown selection (fallback)
-        expect(generateTemplate('unknown-id')).toBe('{{block-architecture}}')
+        expect(await generateTemplate('unknown-id')).toBe('{{block-architecture}}')
 
         spyCreate.mockRestore()
     })
