@@ -108,7 +108,15 @@ export class CalmPreviewPanel {
   }
 
   reveal(uri: vscode.Uri) {
+    const previousUri = this.currentUri
     this.currentUri = uri
+    
+    // If switching to a different file, clear the current selection
+    if (previousUri && previousUri.fsPath !== uri.fsPath) {
+      this.currentSelectedId = undefined
+      this.output.appendLine(`[preview] Switched from ${previousUri.fsPath} to ${uri.fsPath}, clearing selection`)
+    }
+    
     this.panel.reveal(vscode.ViewColumn.Beside)
   }
 
@@ -137,8 +145,8 @@ export class CalmPreviewPanel {
   }
 
   postSelect(id: string) {
-    this.currentSelectedId = id  // Track the current selection
-    this.output.appendLine(`[preview] TreeView selection changed to: ${id}`)
+    this.currentSelectedId = id || undefined  // Track the current selection, treat empty string as undefined
+    this.output.appendLine(`[preview] TreeView selection changed to: ${id || 'none'}`)
     this.panel.webview.postMessage({ type: 'select', id })
     
     // Also trigger docify refresh if docify tab is active

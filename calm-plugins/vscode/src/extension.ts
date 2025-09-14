@@ -126,6 +126,23 @@ export function activate(context: vscode.ExtensionContext) {
             }
         }
     })
+    
+    // Detect when user switches to a different file
+    vscode.window.onDidChangeActiveTextEditor((editor) => {
+        if (!editor || !currentPreview) return
+        const doc = editor.document
+        if (!(doc.languageId === 'json' || doc.languageId === 'yaml' || doc.languageId === 'yml')) return
+        
+        const text = doc.getText()
+        const detected = detectCalmModel(text)
+        if (detected) {
+            output.appendLine('[extension] Detected CALM file switch, updating preview: ' + doc.uri.fsPath)
+            // Update the preview to show the new file
+            currentPreview.reveal(doc.uri)
+            refreshForDocument(doc)
+        }
+    })
+    
     vscode.window.onDidChangeTextEditorSelection((ev: vscode.TextEditorSelectionChangeEvent) => {
         if (!currentPreview || !currentModelIndex) return
         const id = currentModelIndex.idAt(ev.textEditor.document, ev.selections[0].active)
@@ -144,12 +161,20 @@ export function activate(context: vscode.ExtensionContext) {
 
     async function refreshForDocument(doc: vscode.TextDocument) {
         try {
+            output.appendLine('[extension] Refreshing for document: ' + doc.uri.fsPath)
             const text = doc.getText()
             const model = loadCalmModel(text)
             currentModelIndex = new ModelIndex(doc, model)
             treeProvider.setModel(currentModelIndex)
             const graph = toGraph(model, config())
             currentPreview?.setData({ graph, selectedId: undefined, settings: getPreviewSettings() })
+            
+            // Clear the current selection since we switched files
+            if (currentPreview) {
+                currentPreview.postSelect('')  // Clear selection
+                output.appendLine('[extension] Cleared TreeView selection for new file')
+            }
+            
             if (!currentPreview && config().get('preview.autoOpen', false)) {
                 vscode.commands.executeCommand('calm.openPreview')
             }
