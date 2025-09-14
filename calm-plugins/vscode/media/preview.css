@@ -7,12 +7,13 @@ body {
     padding: 0;
     margin: 0;
 }
-#toolbar {
+/* Toolbar is now inside the Cytoscape panel */
+#cytoscape-panel #toolbar {
     display: flex;
     gap: 8px;
     align-items: center;
     padding: 6px 8px;
-    border-bottom: 1px solid #ddd;
+    border-bottom: 1px solid var(--vscode-editorWidget-border, #ddd);
 }
 /* Make toolbar buttons match VS Code themed button styles */
 #toolbar button {
@@ -62,3 +63,88 @@ body {
     word-break: break-word;
     font-size: 11px;
 }
+
+/* Single content area for tabs: only one tab-content is visible at a time */
+#container {
+    display: block;
+    height: calc(100% - 64px);
+    padding: 8px;
+}
+
+#cytoscape-panel, #docify-panel, #validation-panel {
+    background: var(--vscode-editor-background, #ffffff);
+    border: 1px solid var(--vscode-editorWidget-border, #ddd);
+    border-radius: 6px;
+    padding: 8px;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.03) inset;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+#cytoscape-panel h2, #docify-panel h2, #validation-panel h2 {
+    margin: 0 0 6px 0;
+    font-size: 12px;
+    color: var(--vscode-editor-foreground);
+}
+
+/* toolbar under the header */
+#cytoscape-panel #toolbar {
+    margin-top: 4px;
+    margin-bottom: 8px;
+}
+
+#cy {
+    width: 100%;
+    min-height: 240px;
+    flex: 1 1 auto;
+}
+
+#docify-content, #validation-content {
+    overflow: auto;
+    flex: 1 1 auto;
+    padding: 6px;
+    background: transparent;
+}
+
+@media (max-width: 900px) {
+    #container {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto auto auto;
+    }
+    #validation-panel { grid-row: 3 / 4; }
+    #docify-panel { grid-row: 4 / 5; }
+}
+
+/* Tabs */
+.tabs {
+    display: flex;
+    gap: 6px;
+    padding: 8px;
+    border-bottom: 1px solid var(--vscode-editorWidget-border, #ddd);
+}
+.tab-button {
+    background: transparent;
+    border: 1px solid transparent;
+    padding: 6px 10px;
+    border-radius: 4px 4px 0 0;
+    cursor: pointer;
+    color: var(--vscode-editor-foreground);
+}
+.tab-button.active {
+    background: var(--vscode-editorWidget-background, rgba(255,255,255,0.03));
+    border-color: var(--vscode-editorWidget-border, #ddd);
+    border-bottom-color: transparent;
+}
+
+/* Only the active tab-content is visible */
+.tab-content { display: none; }
+.tab-content.active { display: flex; height: calc(100vh - 140px); }
+
+/* Honor the hidden attribute strictly to avoid leaking visuals */
+[hidden], .tab-content[hidden] { display: none !important; visibility: hidden !important; }
+
+/* Ensure Cytoscape canvas expands to available area when active and is hidden when parent is hidden */
+#cytoscape-panel.active #cy { height: 100%; visibility: visible; }
+#cytoscape-panel[hidden] #cy { visibility: hidden !important; }
