@@ -123,7 +123,25 @@ describe('CalmPreviewPanel readiness', () => {
     it('generates correct template content based on selection', async () => {
         const { panel } = createMockPanel()
         const spyCreate = vi.spyOn(vscode.window, 'createWebviewPanel' as any).mockReturnValue(panel)
-        const p = CalmPreviewPanel.createOrShow(ctx as any, (vscode as any).Uri.file('/tmp/doc.yml'), cfg as any, out as any)
+        // Create a test CALM model file with flows
+        const testModelData = {
+            nodes: [
+                { "unique-id": "test-node", name: "Test Node" },
+                { "unique-id": "another-node", name: "Another Node" }
+            ],
+            relationships: [
+                { "unique-id": "test-relationship", source: "test-node", target: "another-node" }
+            ],
+            flows: [
+                { "unique-id": "test-flow", name: "Test Flow" }
+            ]
+        }
+        
+        // Write test model to temporary file
+        const testModelPath = '/tmp/ext/test-model.json'
+        require('fs').writeFileSync(testModelPath, JSON.stringify(testModelData, null, 2))
+        
+        const p = CalmPreviewPanel.createOrShow(ctx as any, (vscode as any).Uri.file(testModelPath), cfg as any, out as any)
 
         // Set graph data with nodes and edges
         const graphData = {
@@ -133,8 +151,7 @@ describe('CalmPreviewPanel readiness', () => {
                     { id: 'another-node', label: 'Another Node' }
                 ],
                 edges: [
-                    { id: 'test-relationship', source: 'test-node', target: 'another-node', type: 'connects' },
-                    { id: 'test-flow', source: 'test-node', target: 'another-node', type: 'flow' }
+                    { id: 'test-relationship', source: 'test-node', target: 'another-node', type: 'connects' }
                 ]
             },
             selectedId: undefined,

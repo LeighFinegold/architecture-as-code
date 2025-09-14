@@ -418,19 +418,38 @@ export class CalmPreviewPanel {
         return template.replace(/\{\{focused-node-id\}\}/g, selectedId)
       }
 
-      // Check if it's an edge (relationship or flow)
+      // Check if it's an edge (relationship)
       const edge = graph.edges?.find(e => e.id === selectedId)
       if (edge) {
-        // Determine if it's a flow or relationship based on type
-        if (edge.type === 'flow') {
-          this.output.appendLine(`[template] Flow selection "${selectedId}" - using focus-flows template`)
-          const template = await this.loadTemplate('flow-focus-template.hbs')
-          return template.replace(/\{\{focused-flow-id\}\}/g, selectedId)
-        } else {
-          this.output.appendLine(`[template] Relationship selection "${selectedId}" (type: ${edge.type}) - using focus-relationships template`)
-          const template = await this.loadTemplate('relationship-focus-template.hbs')
-          return template.replace(/\{\{focused-relationship-id\}\}/g, selectedId)
+        this.output.appendLine(`[template] Relationship selection "${selectedId}" (type: ${edge.type}) - using focus-relationships template`)
+        const template = await this.loadTemplate('relationship-focus-template.hbs')
+        return template.replace(/\{\{focused-relationship-id\}\}/g, selectedId)
+      }
+    }
+
+    // Check if it's a flow from the original model data
+    if (this.currentUri) {
+      try {
+        const content = fs.readFileSync(this.currentUri.fsPath, 'utf8')
+        let modelData: any
+        
+        if (this.currentUri.fsPath.endsWith('.json')) {
+          modelData = JSON.parse(content)
+        } else if (this.currentUri.fsPath.endsWith('.yml') || this.currentUri.fsPath.endsWith('.yaml')) {
+          const yaml = require('yaml')
+          modelData = yaml.parse(content)
         }
+
+        if (modelData?.flows) {
+          const flow = modelData.flows.find((f: any) => f['unique-id'] === selectedId)
+          if (flow) {
+            this.output.appendLine(`[template] Flow selection "${selectedId}" - using focus-flows template`)
+            const template = await this.loadTemplate('flow-focus-template.hbs')
+            return template.replace(/\{\{focused-flow-id\}\}/g, selectedId)
+          }
+        }
+      } catch (error) {
+        this.output.appendLine(`[template] Error reading model data for flow check: ${error}`)
       }
     }
 
