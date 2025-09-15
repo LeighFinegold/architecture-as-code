@@ -65,7 +65,13 @@ export class ModelIndex {
     rangeOf(id: string): any | undefined {
         return this.idToRange.get(id)
     }
-    get nodes() { return (this.model.nodes || []).map(n => ({ id: n.id, label: n.label || n.name || n.id })) }
+    get nodes() {
+        return (this.model.nodes || []).map(n => ({
+            id: n.id,
+            label: n.label || n.name || n.id,
+            nodeType: n.type
+        }))
+    }
     get relationships() {
         const rels: any[] = Array.isArray(this.model.relationships) ? (this.model.relationships as any[]) : []
         const grouped = new Map<string, { id: string; label: string }>()
