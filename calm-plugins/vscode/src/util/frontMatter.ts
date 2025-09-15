@@ -1,8 +1,34 @@
 import * as fs from 'fs'
 import * as path from 'path'
 
+/**
+ * Load URL to local path mapping from a JSON file (similar to CLI implementation)
+ */
+function getUrlToLocalFileMap(urlToLocalFileMapping?: string): Map<string, string> {
+    if (!urlToLocalFileMapping) {
+        return new Map<string, string>()
+    }
+
+    try {
+        const basePath = path.dirname(urlToLocalFileMapping)
+        const mappingJson = JSON.parse(fs.readFileSync(urlToLocalFileMapping, 'utf-8'))
+
+        return new Map(
+            Object.entries(mappingJson).map(([url, relativePath]) => [
+                url,
+                path.resolve(basePath, String(relativePath))
+            ])
+        )
+    } catch (err) {
+        console.error(`Error reading url to local file mapping file: ${urlToLocalFileMapping}`, err)
+        return new Map<string, string>()
+    }
+}
+
 export interface FrontMatter {
     architecture?: string
+    urlToLocalPathMapping?: string
+    'url-to-local-file-mapping'?: string
     [key: string]: any
 }
 
@@ -11,6 +37,7 @@ export interface ParsedTemplate {
     content: string
     hasArchitecture: boolean
     architecturePath?: string
+    urlToLocalPathMapping?: Map<string, string>
 }
 
 /**
@@ -34,7 +61,8 @@ export function parseFrontMatterFromContent(content: string, filePath?: string):
         return {
             frontMatter: {},
             content,
-            hasArchitecture: false
+            hasArchitecture: false,
+            urlToLocalPathMapping: undefined
         }
     }
 
@@ -55,7 +83,8 @@ export function parseFrontMatterFromContent(content: string, filePath?: string):
         return {
             frontMatter: {},
             content,
-            hasArchitecture: false
+            hasArchitecture: false,
+            urlToLocalPathMapping: undefined
         }
     }
 
@@ -74,6 +103,7 @@ export function parseFrontMatterFromContent(content: string, filePath?: string):
 
         let architecturePath: string | undefined
         let hasArchitecture = false
+        let urlToLocalPathMapping: Map<string, string> | undefined
 
         if (frontMatter.architecture) {
             hasArchitecture = true
@@ -85,18 +115,30 @@ export function parseFrontMatterFromContent(content: string, filePath?: string):
             }
         }
 
+        // Process URL to local path mapping if specified
+        if (frontMatter.urlToLocalPathMapping || frontMatter['url-to-local-file-mapping']) {
+            let mappingPath = frontMatter.urlToLocalPathMapping || frontMatter['url-to-local-file-mapping']
+            // Resolve relative paths relative to the template file
+            if (filePath && !path.isAbsolute(mappingPath!)) {
+                mappingPath = path.resolve(path.dirname(filePath), mappingPath!)
+            }
+            urlToLocalPathMapping = getUrlToLocalFileMap(mappingPath!)
+        }
+
         return {
             frontMatter,
             content: templateContent,
             hasArchitecture,
-            architecturePath
+            architecturePath,
+            urlToLocalPathMapping
         }
     } catch (error) {
         // YAML parsing failed
         return {
             frontMatter: {},
             content,
-            hasArchitecture: false
+            hasArchitecture: false,
+            urlToLocalPathMapping: undefined
         }
     }
 }
@@ -116,4 +158,12 @@ export function isTemplateFileWithArchitecture(filePath: string): boolean {
 export function getArchitecturePathFromTemplate(filePath: string): string | null {
     const parsed = parseFrontMatter(filePath)
     return parsed?.architecturePath || null
+}
+
+/**
+ * Get the URL to local path mapping from a template file
+ */
+export function getUrlToLocalPathMappingFromTemplate(filePath: string): Map<string, string> | null {
+    const parsed = parseFrontMatter(filePath)
+    return parsed?.urlToLocalPathMapping || null
 }

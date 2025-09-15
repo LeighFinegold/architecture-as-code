@@ -1,7 +1,7 @@
 import * as path from 'path'
 import * as vscode from 'vscode'
 import { detectCalmModel } from './model'
-import { isTemplateFileWithArchitecture, getArchitecturePathFromTemplate } from './frontMatter'
+import { isTemplateFileWithArchitecture, getArchitecturePathFromTemplate, parseFrontMatter } from './frontMatter'
 
 export enum FileType {
     ArchitectureFile = 'architecture',
@@ -13,6 +13,7 @@ export interface FileInfo {
     type: FileType
     filePath: string
     architecturePath?: string
+    urlToLocalPathMapping?: Map<string, string>
     isValid: boolean
 }
 
@@ -44,13 +45,15 @@ export function detectFileType(filePath: string): FileInfo {
 
     // For any other file type, check if it has front-matter with architecture reference
     try {
-        const hasArchitecture = isTemplateFileWithArchitecture(filePath)
-        const architecturePath = hasArchitecture ? getArchitecturePathFromTemplate(filePath) : undefined
+        const parsed = parseFrontMatter(filePath)
+        const hasArchitecture = parsed?.hasArchitecture || false
+        const architecturePath = parsed?.architecturePath
 
         return {
             type: FileType.TemplateFile,
             filePath,
             architecturePath: architecturePath || undefined,
+            urlToLocalPathMapping: parsed?.urlToLocalPathMapping,
             isValid: hasArchitecture && !!architecturePath
         }
     } catch {

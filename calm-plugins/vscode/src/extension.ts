@@ -37,7 +37,7 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
     const treeProvider = new CalmTreeProvider(() => currentModelIndex)
-    const treeView = vscode.window.createTreeView('calmSidebar', { 
+    const treeView = vscode.window.createTreeView('calmSidebar', {
         treeDataProvider: treeProvider,
         showCollapseAll: true,
         canSelectMany: false
@@ -121,7 +121,7 @@ export function activate(context: vscode.ExtensionContext) {
             placeholder: 'Enter text to filter nodes, relationships, and flows...',
             value: treeProvider.getSearchFilter()
         })
-        
+
         if (searchText !== undefined) {
             treeProvider.setSearchFilter(searchText)
             // Expand relevant groups when searching
@@ -132,14 +132,14 @@ export function activate(context: vscode.ExtensionContext) {
             }
         }
     })
-    
+
     context.subscriptions.push(searchTreeView)
 
     // Clear search command
     const clearTreeViewSearch = vscode.commands.registerCommand('calm.clearTreeViewSearch', () => {
         treeProvider.setSearchFilter('')
     })
-    
+
     context.subscriptions.push(clearTreeViewSearch)
 
     // Language features
@@ -229,6 +229,14 @@ export function activate(context: vscode.ExtensionContext) {
             if (fileInfo.type === FileType.TemplateFile && fileInfo.isValid && fileInfo.architecturePath) {
                 // Template file mode: read the referenced architecture file
                 output.appendLine(`[extension] Template file detected, reading architecture: ${fileInfo.architecturePath}`)
+
+                // Log URL mapping information if available
+                if (fileInfo.urlToLocalPathMapping && fileInfo.urlToLocalPathMapping.size > 0) {
+                    output.appendLine(`[extension] URL mapping found with ${fileInfo.urlToLocalPathMapping.size} entries:`)
+                    for (const [url, localPath] of fileInfo.urlToLocalPathMapping) {
+                        output.appendLine(`[extension]   ${url} -> ${localPath}`)
+                    }
+                }
 
                 if (!fs.existsSync(fileInfo.architecturePath)) {
                     output.appendLine(`[extension] Architecture file not found: ${fileInfo.architecturePath}`)

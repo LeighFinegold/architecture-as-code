@@ -229,6 +229,7 @@ export class CalmPreviewPanel {
     // Determine the architecture file to use
     let archUri: vscode.Uri
     let templateContentToUse: string | undefined
+    let urlToLocalPathMapping = new Map<string, string>()
 
     if (this.isTemplateMode && this.architectureFilePath && this.templateFilePath) {
       // Template mode: use referenced architecture file and template content
@@ -238,6 +239,11 @@ export class CalmPreviewPanel {
       const templateParsed = parseFrontMatter(this.templateFilePath)
       if (templateParsed) {
         templateContentToUse = templateParsed.content
+        // Extract URL mapping from template file
+        if (templateParsed.urlToLocalPathMapping) {
+          urlToLocalPathMapping = templateParsed.urlToLocalPathMapping
+          this.output.appendLine(`[preview] Template mode: Using URL mapping with ${urlToLocalPathMapping.size} entries`)
+        }
         this.output.appendLine('[preview] Template mode: Using template file content for docify')
       }
     } else {
@@ -300,7 +306,7 @@ export class CalmPreviewPanel {
 
     const docifyMode = templatePath ? 'USER_PROVIDED' : 'BUNDLE'
     const templateMode = templatePath ? 'template' : 'bundle'
-    const d = new Docifier(docifyMode, archUri.fsPath, outFile, {}, templateMode, templatePath, false)
+    const d = new Docifier(docifyMode, archUri.fsPath, outFile, urlToLocalPathMapping, templateMode, templatePath, false)
 
     await d.docify()
     this.output.appendLine('[preview] Docify finished')
