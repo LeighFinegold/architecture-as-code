@@ -9,8 +9,42 @@ export class CalmTreeProvider implements vscode.TreeDataProvider<CalmItem> {
     private groupFlows = new CalmItem('Flows', vscode.TreeItemCollapsibleState.Collapsed, 'group:flows')
     private tree: vscode.TreeView<CalmItem> | undefined
     private isTemplateMode: boolean = false
+    private searchFilter: string = '' // Search filter text
 
     constructor(private getIndex: () => ModelIndex | undefined) { }
+
+    // Set search filter and refresh tree
+    setSearchFilter(searchText: string) {
+        this.searchFilter = searchText.toLowerCase().trim()
+        this._onDidChangeTreeData.fire()
+    }
+
+    // Get current search filter
+    getSearchFilter(): string {
+        return this.searchFilter
+    }
+
+    // Check if an item matches the search filter
+    private matchesSearch(text: string): boolean {
+        if (!this.searchFilter) return true
+        return text.toLowerCase().includes(this.searchFilter)
+    }
+
+    // Filter items based on search
+    private filterItems<T extends { id: string; label?: string }>(items: T[]): T[] {
+        if (!this.searchFilter) return items
+        return items.filter(item => 
+            this.matchesSearch(item.label || item.id) || this.matchesSearch(item.id)
+        )
+    }
+
+    // Check if a node type group has any matching children
+    private nodeTypeHasMatches(nodeType: string): boolean {
+        if (!this.searchFilter) return true
+        const groupedNodes = this.getGroupedNodes()
+        const nodes = groupedNodes.get(nodeType) || []
+        return nodes.some(node => this.matchesSearch(node.label) || this.matchesSearch(node.id))
+    }
 
     // Helper function to capitalize node type for display
     private capitalizeNodeType(nodeType: string | undefined): string {
@@ -48,10 +82,16 @@ export class CalmTreeProvider implements vscode.TreeDataProvider<CalmItem> {
 
     setTemplateMode(isTemplateMode: boolean) {
         this.isTemplateMode = isTemplateMode
+        // Clear search filter when switching to template mode
+        if (isTemplateMode) {
+            this.searchFilter = ''
+        }
         this._onDidChangeTreeData.fire()
     }
 
-    attach(view: vscode.TreeView<CalmItem>) { this.tree = view }
+    attach(view: vscode.TreeView<CalmItem>) { 
+        this.tree = view 
+    }
 
     async revealById(id: string) {
         if (!this.tree) return
@@ -98,7 +138,23 @@ export class CalmTreeProvider implements vscode.TreeDataProvider<CalmItem> {
         if (!index) return Promise.resolve([])
 
         if (!element) {
-            return Promise.resolve([this.architectureGroup])
+            const children: CalmItem[] = []
+            
+            // Add filter status item if search is active
+            if (this.searchFilter) {
+                const filterItem = new CalmItem(
+                    `Filtering by "${this.searchFilter}"`,
+                    vscode.TreeItemCollapsibleState.None,
+                    'filter-status'
+                )
+                filterItem.iconPath = new vscode.ThemeIcon('search')
+                filterItem.contextValue = 'filter-status'
+                filterItem.tooltip = 'Click the clear button (🗑️) in the header to remove filter'
+                children.push(filterItem)
+            }
+            
+            children.push(this.architectureGroup)
+            return Promise.resolve(children)
         }
 
         const [kind, group, ...rest] = element.id.split(':')
@@ -108,19 +164,22 @@ export class CalmTreeProvider implements vscode.TreeDataProvider<CalmItem> {
                 return Promise.resolve([this.groupNodes, this.groupRels, this.groupFlows])
             }
             if (group === 'nodes') {
-                // Return node type groups under Nodes
+                // Return node type groups under Nodes (only those with matching children)
                 const groupedNodes = this.getGroupedNodes()
                 const nodeTypeGroups: CalmItem[] = []
 
-                // Create groups for each node type
+                // Create groups for each node type that has matching children
                 for (const [normalizedType, nodes] of groupedNodes) {
-                    const displayType = this.capitalizeNodeType(nodes[0]?.nodeType)
-                    const groupItem = new CalmItem(
-                        `${displayType} (${nodes.length})`,
-                        vscode.TreeItemCollapsibleState.Collapsed,
-                        `group:nodetype:${normalizedType}`
-                    )
-                    nodeTypeGroups.push(groupItem)
+                    if (this.nodeTypeHasMatches(normalizedType)) {
+                        const filteredNodes = this.filterItems(nodes)
+                        const displayType = this.capitalizeNodeType(nodes[0]?.nodeType)
+                        const groupItem = new CalmItem(
+                            `${displayType} (${filteredNodes.length})`,
+                            vscode.TreeItemCollapsibleState.Collapsed,
+                            `group:nodetype:${normalizedType}`
+                        )
+                        nodeTypeGroups.push(groupItem)
+                    }
                 }
 
                 // Sort node type groups alphabetically
@@ -133,17 +192,20 @@ export class CalmTreeProvider implements vscode.TreeDataProvider<CalmItem> {
                 return Promise.resolve(nodeTypeGroups)
             }
             if (group === 'relationships') {
-                return Promise.resolve(index.relationships.map(r => CalmItem.leaf(r.id, r.label || r.id, 'relationship')))
+                const filteredRels = this.filterItems(index.relationships)
+                return Promise.resolve(filteredRels.map(r => CalmItem.leaf(r.id, r.label || r.id, 'relationship')))
             }
             if (group === 'flows') {
-                return Promise.resolve(index.flows.map(f => CalmItem.leaf(f.id, f.label || f.id, 'flow')))
+                const filteredFlows = this.filterItems(index.flows)
+                return Promise.resolve(filteredFlows.map(f => CalmItem.leaf(f.id, f.label || f.id, 'flow')))
             }
             // Handle node type groups: group:nodetype:service
             if (group === 'nodetype' && rest.length > 0) {
                 const nodeType = rest[0] // This is the actual node type (e.g., 'service')
                 const groupedNodes = this.getGroupedNodes()
                 const nodes = groupedNodes.get(nodeType) || []
-                return Promise.resolve(nodes.map(n => CalmItem.leaf(n.id, n.label, 'node')))
+                const filteredNodes = this.filterItems(nodes)
+                return Promise.resolve(filteredNodes.map(n => CalmItem.leaf(n.id, n.label, 'node')))
             }
         }
         return Promise.resolve([])

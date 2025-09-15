@@ -2,7 +2,7 @@ import * as vscode from 'vscode'
 import * as fs from 'fs'
 import * as path from 'path'
 import { CalmPreviewPanel } from './previewPanel'
-import { CalmTreeProvider } from './treeView'
+import { CalmTreeProvider, CalmItem } from './treeView'
 import { ModelIndex, detectCalmModel, loadCalmModel, toGraph } from './util/model'
 import { provideHovers, provideCodeLens } from './util/language'
 import { SchemaDirectory, initLogger } from '@finos/calm-shared'
@@ -37,7 +37,11 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
     const treeProvider = new CalmTreeProvider(() => currentModelIndex)
-    const treeView = vscode.window.createTreeView('calmSidebar', { treeDataProvider: treeProvider })
+    const treeView = vscode.window.createTreeView('calmSidebar', { 
+        treeDataProvider: treeProvider,
+        showCollapseAll: true,
+        canSelectMany: false
+    })
     treeProvider.attach(treeView)
     context.subscriptions.push(treeView)
 
@@ -109,6 +113,34 @@ export function activate(context: vscode.ExtensionContext) {
     })
 
     context.subscriptions.push(openPreview)
+
+    // Tree view search command
+    const searchTreeView = vscode.commands.registerCommand('calm.searchTreeView', async () => {
+        const searchText = await vscode.window.showInputBox({
+            prompt: 'Search CALM Architecture Elements',
+            placeholder: 'Enter text to filter nodes, relationships, and flows...',
+            value: treeProvider.getSearchFilter()
+        })
+        
+        if (searchText !== undefined) {
+            treeProvider.setSearchFilter(searchText)
+            // Expand relevant groups when searching
+            if (searchText.trim()) {
+                setTimeout(() => {
+                    treeView.reveal(treeProvider.getTreeItem(new CalmItem('Architecture', vscode.TreeItemCollapsibleState.Expanded, 'group:architecture')), { expand: true })
+                }, 100)
+            }
+        }
+    })
+    
+    context.subscriptions.push(searchTreeView)
+
+    // Clear search command
+    const clearTreeViewSearch = vscode.commands.registerCommand('calm.clearTreeViewSearch', () => {
+        treeProvider.setSearchFilter('')
+    })
+    
+    context.subscriptions.push(clearTreeViewSearch)
 
     // Language features
     context.subscriptions.push(
