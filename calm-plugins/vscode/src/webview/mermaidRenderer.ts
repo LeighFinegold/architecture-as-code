@@ -19,20 +19,22 @@ export default class MermaidRenderer {
                 startOnLoad: false,
                 securityLevel: 'strict',
                 theme: 'base',
+                deterministicIds: true, // For better performance with large diagrams
+                logLevel: 'error', // Reduce logging for better performance
                 flowchart: {
                     // Better handling of long labels
                     curve: 'basis',
-                    padding: 20,
-                    nodeSpacing: 50,
-                    rankSpacing: 80,
+                    padding: 15, // Reduced for more compact layouts
+                    nodeSpacing: 40, // Reduced for denser layouts
+                    rankSpacing: 60, // Reduced for more compact vertical spacing
                     // Allow wrapping for edge labels
                     htmlLabels: true,
                     // Improve text wrapping
                     useMaxWidth: true
                 },
-                // Global settings for better rendering
-                maxTextSize: 50000,
-                maxEdges: 500
+                // Global settings for better rendering of large files
+                maxTextSize: 2000000, // 2MB to support large architecture files
+                maxEdges: 10000 // Support complex diagrams with many connections
             })
             this.mermaidReady = true
         }
