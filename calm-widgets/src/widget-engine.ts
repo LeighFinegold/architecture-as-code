@@ -36,7 +36,7 @@ export class WidgetEngine {
             }
 
             if (this.handlebars.helpers[widgetId]) {
-                console.warn(`[WidgetEngine] ⚠️ Helper '${widgetId}' is already registered. Skipping widget helper registration.`);
+                throw new Error(`[WidgetEngine] ❌ Conflict: Handlebars already has a helper registered as '${widgetId}'.`);
             } else {
                 this.registry.register(widget, folder);
                 this.registerWidgetHelper(widgetId);
