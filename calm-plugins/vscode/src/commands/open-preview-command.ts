@@ -1,5 +1,5 @@
 import * as vscode from 'vscode'
-import { detectFileType, FileType } from '../util/fileTypes'
+import { detectFileType, FileType } from '../util/file-types'
 import type { CommandDeps } from './types'
 
 export function registerOpenPreview({ ctx, output, config, refresh, selection, tree, preview, setTemplateMode }: CommandDeps) {

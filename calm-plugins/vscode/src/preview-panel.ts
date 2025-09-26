@@ -1,10 +1,10 @@
 import * as vscode from 'vscode'
-import { getNonce } from './util/webview'
+import { getNonce } from './util/web-view'
 import * as fs from 'fs'
 import * as path from 'path'
 import * as os from 'os'
-import { detectFileType, FileType } from './util/fileTypes'
-import { parseFrontMatter } from './util/frontMatter'
+import { detectFileType, FileType } from './util/file-types'
+import { parseFrontMatter } from './util/front-matter'
 
 export interface GraphData {
   nodes: Array<{ id: string; label: string; type?: string }>

@@ -1,9 +1,9 @@
 import * as vscode from 'vscode'
-import type { SelectionService } from '../core/services/SelectionService'
+import type { SelectionService } from '../core/services/selection-service'
 import type { RefreshService } from '../core/services/RefreshService'
-import type { ConfigService } from '../core/services/ConfigService'
+import type { ConfigService } from '../core/services/config-service'
 import type { TreeViewManager } from '../ui/tree-view-manager'
-import type { PreviewManager } from '../ui/PreviewManager'
+import type { PreviewManager } from '../ui/preview-manager'
 
 export type RegisterFn = (ctx: vscode.ExtensionContext) => void
 

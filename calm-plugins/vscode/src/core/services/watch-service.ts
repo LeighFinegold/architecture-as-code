@@ -1,6 +1,6 @@
 import * as vscode from 'vscode'
-import { detectFileType, FileType } from '../../util/fileTypes'
-import { ConfigService } from './ConfigService'
+import { detectFileType, FileType } from '../../util/file-types'
+import { ConfigService } from './config-service'
 import { RefreshService } from './RefreshService'
 
 export class WatchService {

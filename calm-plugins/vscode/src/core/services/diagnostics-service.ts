@@ -2,7 +2,7 @@ import * as fs from 'fs/promises'
 import * as path from 'path'
 import type * as vscode from 'vscode'
 import { SchemaDirectory } from '@finos/calm-shared'
-import type { Logger } from '../ports/Logger'
+import type { Logger } from '../ports/logger'
 
 export class DiagnosticsService {
     constructor(private log: Logger) {}

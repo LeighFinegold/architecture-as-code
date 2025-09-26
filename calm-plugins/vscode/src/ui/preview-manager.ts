@@ -1,5 +1,5 @@
 import * as vscode from 'vscode'
-import { CalmPreviewPanel } from '../previewPanel'
+import { CalmPreviewPanel } from '../preview-panel'
 
 export interface PreviewLike {
     setData(data: any): void

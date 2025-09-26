@@ -1,9 +1,9 @@
 import * as vscode from 'vscode'
-import { detectFileType, FileType } from '../util/fileTypes'
+import { detectFileType, FileType } from '../util/file-types'
 import type { ModelIndex } from '../util/model'
 import type { RefreshService } from '../core/services/RefreshService'
-import type { PreviewManager } from './PreviewManager'
-import type { SelectionService } from '../core/services/SelectionService'
+import type { PreviewManager } from './preview-manager'
+import type { SelectionService } from '../core/services/selection-service'
 
 export class EditorGateway {
     constructor(private getModelIndex: () => ModelIndex | undefined) {}

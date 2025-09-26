@@ -1,10 +1,10 @@
 import * as vscode from 'vscode'
 import * as fs from 'fs'
-import { detectFileType, FileType } from '../../util/fileTypes'
+import { detectFileType, FileType } from '../../util/file-types'
 import { loadCalmModel, ModelIndex, toGraph } from '../../util/model'
-import { ConfigService } from './ConfigService'
-import { TreeAdapter } from './TreeAdapter'
-import type { Logger } from '../ports/Logger'
+import { ConfigService } from './config-service'
+import { TreeAdapter } from './tree-adapter'
+import type { Logger } from '../ports/logger'
 
 export interface RefreshResult {
     modelIndex: ModelIndex | undefined

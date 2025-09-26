@@ -1,5 +1,5 @@
 import * as vscode from 'vscode'
-import { CalmExtensionController } from './core/CalmExtensionController'
+import { CalmExtensionController } from './core/calm-extension-controller'
 
 
 let controller: CalmExtensionController | undefined

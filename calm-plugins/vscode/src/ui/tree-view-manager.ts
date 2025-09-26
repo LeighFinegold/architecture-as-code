@@ -1,7 +1,7 @@
 import * as vscode from 'vscode'
-import { CalmTreeProvider, CalmItem } from '../treeView'
+import { CalmTreeProvider, CalmItem } from '../tree-view'
 import { ModelIndex } from '../util/model'
-import type { SelectionService } from '../core/services/SelectionService'
+import type { SelectionService } from '../core/services/selection-service'
 
 export class TreeViewManager {
     private provider: CalmTreeProvider

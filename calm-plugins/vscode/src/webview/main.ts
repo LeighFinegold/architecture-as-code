@@ -1,5 +1,5 @@
 // src/webview/main.ts
-import MermaidRenderer from './mermaidRenderer'
+import MermaidRenderer from './mermaid-renderer'
 
 // Access VS Code API if present; otherwise fall back to no-op poster.
 const vscode =

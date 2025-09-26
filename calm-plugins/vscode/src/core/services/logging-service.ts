@@ -1,6 +1,6 @@
 import * as vscode from 'vscode'
 import { initLogger } from '@finos/calm-shared'
-import type { Logger } from '../ports/Logger'
+import type { Logger } from '../ports/logger'
 
 export class LoggingService implements Logger {
     readonly output: vscode.OutputChannel

@@ -1,7 +1,7 @@
 import * as path from 'path'
 import * as vscode from 'vscode'
 import { detectCalmModel } from './model'
-import { isTemplateFileWithArchitecture, getArchitecturePathFromTemplate, parseFrontMatter } from './frontMatter'
+import { isTemplateFileWithArchitecture, getArchitecturePathFromTemplate, parseFrontMatter } from './front-matter'
 
 export enum FileType {
     ArchitectureFile = 'architecture',
