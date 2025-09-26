@@ -10,7 +10,19 @@ export default defineConfig([
         sourcemap: true,
         clean: true,
         dts: false,
+        // Bundle runtime dependencies into the extension so the installed VSIX does
+        // not rely on node_modules being present in the target environment.
+        // Keep 'vscode' external (provided by the host).
         external: ['vscode'],
+        noExternal: [
+            'yaml',
+            'lodash',
+            '@finos/calm-shared',
+            '@finos/calm-models',
+            'markdown-it',
+            'mermaid',
+            'jsdom'
+        ],
         minify: false,
         outDir: 'dist',
     },
