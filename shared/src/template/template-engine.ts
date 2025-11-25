@@ -163,6 +163,28 @@ export class TemplateEngine {
         return /^\s*---\s*\n/.test(content);
     }
 
+    private unwrapDocument(root: any): any {
+        let current = root;
+        const hasDomainKeys = (obj: any) => obj && typeof obj === 'object' && (obj.nodes || obj.relationships || obj.flows);
+        // Peel nested document.document layers
+        let safety = 0;
+        while (current && typeof current === 'object' && current.document && typeof current.document === 'object' && safety < 5) {
+            if (hasDomainKeys(current.document)) {
+                current = current.document; // found domain keys one level down
+                break;
+            }
+            // If next level has another .document with domain keys, keep unwrapping
+            if (current.document.document && hasDomainKeys(current.document.document)) {
+                current = current.document.document;
+                break;
+            }
+            // Otherwise move one level down and continue
+            current = current.document;
+            safety++;
+        }
+        return current;
+    }
+
     private processTemplate(templateEntry: TemplateEntry, data: any, outputDir: string): void {
         const logger = TemplateEngine.logger;
         const { template, from, output, 'output-type': outputType, partials, alias } = templateEntry;
@@ -193,58 +215,103 @@ export class TemplateEngine {
         const fmParsed = this.extractFrontMatter(rawTemplate);
         let fmVars: Record<string, string> | undefined;
         if (fmParsed) {
-            // capture string-valued FM entries to attempt path resolution later into context
-            fmVars = Object.fromEntries(
-                Object.entries(fmParsed)
-                    .filter(([k, v]) => typeof v === 'string')
-                    .map(([k, v]) => [k, v as string])
-            );
+            const evaluationContext: Record<string, any> = { ...fmParsed };
+            const evaluated: Record<string, string> = {};
+            for (const [k, v] of Object.entries(fmParsed)) {
+                if (typeof v === 'string') {
+                    try {
+                        const compiled = Handlebars.compile(v);
+                        const result = compiled(evaluationContext);
+                        evaluated[k] = result;
+                        evaluationContext[k] = result;
+                    } catch (err) {
+                        TemplateEngine.logger.warn(`Failed to evaluate FM Handlebars for key ${k}: ${(err as Error).message}`);
+                        evaluated[k] = v;
+                    }
+                }
+            }
+            fmVars = evaluated;
         }
+
+        const isPathExpression = (expr: string): boolean => {
+            // Contains dot or brackets OR starts with document. OR begins with known collection name
+            return /[\[\].]/.test(expr) || expr.startsWith('document.') || /^(nodes|relationships|flows|controls|metadata)\b/.test(expr);
+        };
 
         const resolveVariablePaths = (vars: Record<string, string> | undefined, rootModel: any): Record<string, unknown> => {
             if (!vars) return {};
             const resolved: Record<string, unknown> = {};
+            const modelRoot = this.unwrapDocument(rootModel);
+            const rootCtx = { ...modelRoot, document: modelRoot };
+            const idValue = vars.id; // capture id FM value if present
             for (const [varName, expr] of Object.entries(vars)) {
-                try {
-                    const syntheticRoot = { document: rootModel };
-                    const value = TemplatePathExtractor.convertFromDotNotation(syntheticRoot, expr, {});
-                    resolved[varName] = value;
-                } catch (err) {
-                    TemplateEngine.logger.warn(`Failed to resolve FM variable path ${varName}="${expr}": ${(err as Error).message}`);
+                if (!isPathExpression(expr)) {
+                    resolved[varName] = expr;
+                    continue;
                 }
+                let value: unknown;
+                const tryResolve = (pathExpr: string): unknown => {
+                    try {
+                        return TemplatePathExtractor.convertFromDotNotation(rootCtx, pathExpr, {});
+                    } catch {
+                        return undefined;
+                    }
+                };
+                value = tryResolve(expr);
+                if (value === undefined && !expr.startsWith('document.')) {
+                    value = tryResolve(`document.${expr}`);
+                }
+                // Fallback: auto-correct nodes['unique-id'] to nodes['<id>'] if id FM present and resolution empty
+                if ((value === undefined || (Array.isArray(value) && value.length === 0)) && idValue && expr === "nodes['unique-id']") {
+                    const correctedExpr = `nodes['${idValue}']`;
+                    TemplateEngine.logger.info(`Auto-correcting FM path ${expr} -> ${correctedExpr}`);
+                    value = tryResolve(correctedExpr);
+                    if (value === undefined) {
+                        value = tryResolve(`document.${correctedExpr}`);
+                    }
+                }
+                if (value === undefined) {
+                    TemplateEngine.logger.warn(`FM variable '${varName}' path '${expr}' did not resolve; keeping literal.`);
+                    value = expr;
+                }
+                // Heuristic unwrap: if a single-element array and variable name is singular domain alias
+                if (Array.isArray(value) && value.length === 1 && ['node','relationship','flow','control','controlRequirement'].includes(varName)) {
+                    value = value[0];
+                }
+                resolved[varName] = value;
             }
             return resolved;
         };
 
         const buildAliasContext = (instance: any, rootModel: any): Record<string, unknown> => {
             const fmResolved = resolveVariablePaths(fmVars, rootModel);
+            const modelRoot = this.unwrapDocument(rootModel);
+            const domainVars = ['node', 'relationship', 'flow', 'control', 'controlRequirement'];
+            const hasDomainAliasInFM = domainVars.some(d => d in fmResolved);
 
-            // Base object for alias injection
             const aliasObj: Record<string, unknown> = {};
-            if (aliasName && instance && typeof instance === 'object') {
-                // create dashed shadows for readability
-                const shadow: Record<string, unknown> = { ...instance };
-                Object.keys(instance).forEach(k => {
-                    if (typeof k === 'string' && /[A-Z]/.test(k)) {
-                        const kebab = k.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
-                        if (!(kebab in shadow)) shadow[kebab] = (instance as Record<string, unknown>)[k];
-                    }
-                });
-                aliasObj[aliasName] = shadow;
-            } else if (aliasName) {
-                aliasObj[aliasName] = instance;
+            // Suppress default 'item' alias if FM provides a domain-specific variable
+            if (aliasName !== 'item' || !hasDomainAliasInFM) {
+                if (aliasName && instance && typeof instance === 'object') {
+                    const shadow: Record<string, unknown> = { ...instance };
+                    Object.keys(instance).forEach(k => {
+                        if (typeof k === 'string' && /[A-Z]/.test(k)) {
+                            const kebab = k.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
+                            if (!(kebab in shadow)) shadow[kebab] = (instance as Record<string, unknown>)[k];
+                        }
+                    });
+                    aliasObj[aliasName] = shadow;
+                } else if (aliasName) {
+                    aliasObj[aliasName] = instance;
+                }
             }
 
-            // Merge order: document → alias → fmResolved, with fm variables not clobbering alias unless explicitly same key
-            const context: Record<string, unknown> = { document: rootModel, ...aliasObj };
+            const context: Record<string, unknown> = { document: modelRoot, ...aliasObj };
             for (const [k, v] of Object.entries(fmResolved)) {
                 if (k === aliasName && aliasName in context) {
-                    // FM explicitly defines the alias key: allow override
-                    context[k] = v;
+                    context[k] = v; // explicit override of alias
                 } else if (!(k in context)) {
                     context[k] = v;
-                } else {
-                    // keep existing (alias or other) if FM defines same key but not alias
                 }
             }
             return context;

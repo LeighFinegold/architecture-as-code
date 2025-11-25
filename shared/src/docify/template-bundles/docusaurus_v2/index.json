@@ -12,7 +12,7 @@
         "id": "{{node.unique-id}}",
         "title": "{{node.name}}",
         "architecture": "{{pathToArchitecture}}",
-        "node": "nodes['unique-id']"
+        "node": "nodes['{{node.unique-id}}']"
       }
     }
   ]
