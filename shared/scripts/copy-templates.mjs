@@ -7,8 +7,8 @@ const __dirname = path.dirname(__filename);
 
 
 const projectRoot = path.resolve(__dirname, '..');
-const srcDir = path.join(projectRoot, 'src/docify/template-bundles/docusaurus');
-const outDir = path.join(projectRoot, 'dist/template-bundles/docusaurus');
+const srcDir = path.join(projectRoot, 'src/docify/template-bundles/docusaurus_v2');
+const outDir = path.join(projectRoot, 'dist/template-bundles/docusaurus_v2');
 const excludedFile = 'docusaurus-transformer.ts';
 
 function copyRecursive(currentDir, baseDir) {

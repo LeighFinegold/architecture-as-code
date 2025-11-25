@@ -5,7 +5,7 @@ export type DocifyMode = 'SAD' | 'WEBSITE' | 'USER_PROVIDED';
 export class Docifier {
     private static readonly TEMPLATE_BUNDLE_PATHS: Record<DocifyMode, string> = {
         SAD: __dirname + '/template-bundles/sad',
-        WEBSITE: __dirname + '/template-bundles/docusaurus',
+        WEBSITE: __dirname + '/template-bundles/docusaurus_v2',
         USER_PROVIDED: __dirname + '/template-bundles/null-pattern'
     };
 
@@ -32,7 +32,7 @@ export class Docifier {
             templatePath ?? Docifier.TEMPLATE_BUNDLE_PATHS[mode];
 
         //TODO: need to move docifier and graphing package to widget framework. Until then widgets will clash
-        const supportWidgetEngine = mode !== 'WEBSITE';
+        const supportWidgetEngine = true;
 
         this.templateProcessor = new TemplateProcessor(
             inputPath,

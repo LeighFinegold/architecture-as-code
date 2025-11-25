@@ -13,7 +13,7 @@ const fakeConfig: IndexFile = {
     transformer: 'mock-transformer',
     templates: [
         { template: 'main.hbs', from: 'data', output: 'output.txt', 'output-type': 'single' },
-        { template: 'main.hbs', from: 'users', output: '{{id}}.txt', 'output-type': 'repeated' }
+        { template: 'main.hbs', from: 'users', output: '{{user.id}}.txt', 'output-type': 'repeated', alias: 'user' }
     ]
 };
 

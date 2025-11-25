@@ -45,9 +45,7 @@ export class TemplateEngine {
     private registerTemplateHelpers(): void {
         const logger = TemplateEngine.logger;
         logger.info('🔧 Registering Handlebars Helpers...');
-
         const helperFunctions = this.transformer.registerTemplateHelpers();
-
         Handlebars.registerHelper('convertFromDotNotation', (context: unknown, path: string, options?: any) => {
             try {
                 return TemplatePathExtractor.convertFromDotNotation(context, path, options?.hash || {});
@@ -56,11 +54,18 @@ export class TemplateEngine {
                 return [];
             }
         });
-
+        // Register transformer-provided helpers
         Object.entries(helperFunctions).forEach(([name, fn]) => {
             Handlebars.registerHelper(name, fn);
             logger.info(`✅ Registered helper: ${name}`);
         });
+        // New helper: aliasKeys lists keys on an alias object (including dashed shadows)
+        Handlebars.registerHelper('aliasKeys', (aliasObj: unknown) => {
+            if (!aliasObj || typeof aliasObj !== 'object') return [];
+            const keys = Object.keys(aliasObj as Record<string, unknown>);
+            return keys.sort();
+        });
+        logger.info('✅ Registered helper: aliasKeys');
     }
 
     public generate(data: any, outputDir: string): void {
@@ -76,15 +81,80 @@ export class TemplateEngine {
             this.processTemplate(templateEntry, data, outputDir);
         }
 
-        logger.info('\n✅ Template Generation Completed!');
+        logger.info('\n\u2705 Template Generation Completed!');
+    }
+
+    // New helper: resolve dot/bracket path in `from` with exact-key fallback.
+    private resolveFromData(root: any, from: string): any {
+        //log root and from
+        TemplateEngine.logger.info(`Resolving 'from' path: ${from} in root: ${JSON.stringify(root)}`);
+
+        if (!from) return undefined;
+        // Exact key fallback (legacy behaviour)
+        if (Object.prototype.hasOwnProperty.call(root, from)) {
+            return root[from];
+        }
+        try {
+            // Use the same path extractor semantics as templates for consistency.
+            const resolved = TemplatePathExtractor.convertFromDotNotation(root, from, {});
+            return resolved;
+        } catch (err) {
+            TemplateEngine.logger.warn(`Failed to resolve 'from' path "${from}": ${(err as Error).message}`);
+            return undefined;
+        }
+    }
+
+    /**
+     * Generate YAML front-matter for a document based on template configuration
+     * @param templateEntry - The template entry containing front-matter configuration
+     * @param context - The context data used to evaluate Handlebars expressions
+     * @returns A string containing the YAML front-matter with delimiters, or empty string if disabled
+     */
+    private generateFrontMatter(templateEntry: TemplateEntry, context: any): string {
+        const logger = TemplateEngine.logger;
+
+        if (!templateEntry.frontmatter?.enabled) {
+            return '';
+        }
+
+        const fm = templateEntry.frontmatter;
+        const frontMatterObj: Record<string, any> = {};
+
+        // Compile and evaluate each front-matter field
+        Object.entries(fm).forEach(([key, value]) => {
+            if (key === 'enabled') return;
+
+            if (typeof value === 'string') {
+                try {
+                    // Compile the handlebars expression and evaluate with context
+                    const compiled = Handlebars.compile(value);
+                    const evaluated = compiled(context);
+                    frontMatterObj[key] = evaluated;
+                } catch (err) {
+                    logger.warn(`Failed to evaluate front-matter field "${key}": ${(err as Error).message}`);
+                }
+            } else {
+                // Use literal value if not a string
+                frontMatterObj[key] = value;
+            }
+        });
+
+        // Generate YAML front-matter
+        const lines = ['---'];
+        Object.entries(frontMatterObj).forEach(([key, value]) => {
+            lines.push(`${key}: ${value}`);
+        });
+        lines.push('---', '');
+
+        return lines.join('\n');
     }
 
     private processTemplate(templateEntry: TemplateEntry, data: any, outputDir: string): void {
         const logger = TemplateEngine.logger;
-        const { template, from, output, 'output-type': outputType, partials } = templateEntry;
+        const { template, from, output, 'output-type': outputType, partials, alias } = templateEntry;
 
         if (!this.templates[template]) {
-            logger.warn(`⚠️ Skipping unknown template: ${template}`);
+            logger.warn(`\u26a0\ufe0f Skipping unknown template: ${template}`);
             return;
         }
 
@@ -99,29 +169,62 @@ export class TemplateEngine {
             }
         }
 
-        const dataSource = data[from];
+        const dataSource = this.resolveFromData(data, from);
+        const aliasName = alias || 'item';
+        const outputTemplate = Handlebars.compile(output);
+
+        const buildAliasContext = (instance: any): Record<string, unknown> => {
+            if (!instance || typeof instance !== 'object') return { [aliasName]: instance };
+            // shallow clone to avoid mutating original
+            const aliasObj: Record<string, unknown> = { ...instance };
+            // add dashed/kebab shadow properties for camelCase keys
+            Object.keys(instance).forEach(k => {
+                if (typeof k === 'string' && /[A-Z]/.test(k)) {
+                    const kebab = k
+                        .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+                        .toLowerCase();
+                    if (!(kebab in aliasObj)) aliasObj[kebab] = (instance as Record<string, unknown>)[k];
+                }
+            });
+            return { [aliasName]: aliasObj, ...instance }; // keep original root fields accessible
+        };
 
         if (outputType === 'repeated') {
             if (!Array.isArray(dataSource)) {
-                logger.warn(`⚠️ Expected array for repeated output, but found non-array for ${template}`);
+                logger.warn(`\u26a0\ufe0f Expected array for repeated output, but found non-array for ${template}`);
                 return;
             }
-
             for (const instance of dataSource) {
-                const filename = output.replace('{{id}}', instance.id);//TODO: Improve output naming for use case.
+                const ctx = buildAliasContext(instance);
+                const filename = outputTemplate(ctx);
                 const outputPath = path.join(outputDir, filename);
                 fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-                fs.writeFileSync(outputPath, this.templates[template](instance), 'utf8');
-                logger.info(`✅ Generated: ${outputPath}`);
+                // Generate front-matter and prepend to template content
+                const frontMatter = this.generateFrontMatter(templateEntry, ctx);
+                const templateContent = this.templates[template](ctx);
+                const finalContent = frontMatter + templateContent;
+                fs.writeFileSync(outputPath, finalContent, 'utf8');
+                logger.info(`\u2705 Generated: ${outputPath}`);
             }
-        } else if (outputType === 'single') {
-            const filename = output.replace('{{id}}', dataSource.id);//TODO: Improve output naming for use case.
+        }
+        else if (outputType === 'single') {
+            if (!dataSource) {
+                logger.warn(`\u26a0\ufe0f Single output template '${template}' resolved to undefined/null from path '${from}'.`);
+                return;
+            }
+            const ctx = buildAliasContext(dataSource);
+            const filename = outputTemplate(ctx);
             const outputPath = path.join(outputDir, filename);
             fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-            fs.writeFileSync(outputPath, this.templates[template](dataSource), 'utf8');
-            logger.info(`✅ Generated: ${outputPath}`);
-        } else {
-            logger.warn(`⚠️ Unknown output-type: ${outputType}`);
+            // Generate front-matter and prepend to template content
+            const frontMatter = this.generateFrontMatter(templateEntry, ctx);
+            const templateContent = this.templates[template](ctx);
+            const finalContent = frontMatter + templateContent;
+            fs.writeFileSync(outputPath, finalContent, 'utf8');
+            logger.info(`\u2705 Generated: ${outputPath}`);
+        }
+        else {
+            logger.warn(`\u26a0\ufe0f Unknown output-type: ${outputType}`);
         }
     }
 }

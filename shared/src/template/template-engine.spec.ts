@@ -109,7 +109,7 @@ describe('TemplateEngine', () => {
         const templateConfig: IndexFile = {
             name: 'Test Template',
             transformer: 'mock-transformer',
-            templates: [{ template: 'main.hbs', from: 'users', output: '{{id}}.txt', 'output-type': 'repeated' }],
+            templates: [{ template: 'main.hbs', from: 'users', output: '{{user.id}}.txt', 'output-type': 'repeated', alias: 'user' }],
         };
 
         const templateFiles = {

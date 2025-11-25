@@ -90,6 +90,9 @@ export class TemplateProcessor {
 
             this.validateConfig(config);
 
+            //Add to handlebars a global variable architecturePath st to the resolvedOutputPath
+            Handlebars.registerHelper('pathToArchitecture', () => resolvedInputPath);
+
 
             const mappedResolver = new MappedReferenceResolver(this.urlToLocalPathMapping, new CompositeReferenceResolver());
             const transformer = await this.loadTransformer(config.transformer, resolvedBundlePath);
@@ -97,6 +100,8 @@ export class TemplateProcessor {
             const dereference = new DereferencingVisitor(mappedResolver);
             await dereference.visit(coreModel);
             const transformedModel = transformer.getTransformedModel(coreModel);
+            // Inject architecture path as variable for template use (e.g. {{pathToArchitecture}})
+            (transformedModel as Record<string, unknown>).pathToArchitecture = resolvedInputPath;
             const engine = new TemplateEngine(loader, transformer);
             engine.generate(transformedModel, resolvedOutputPath);
 
