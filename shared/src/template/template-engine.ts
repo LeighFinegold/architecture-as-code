@@ -7,9 +7,11 @@ import fs from 'fs';
 import path from 'path';
 import { TemplatePathExtractor } from './template-path-extractor.js';
 import { TemplatePreprocessor } from './template-preprocessor.js';
+import yaml from 'js-yaml';
 
 export class TemplateEngine {
     private readonly templates: Record<string, Handlebars.TemplateDelegate>;
+    private readonly rawTemplates: Record<string, string>; // store raw sources for scaffold mode
     private readonly config: IndexFile;
     private transformer: CalmTemplateTransformer;
     private static _logger: Logger | undefined;
@@ -24,7 +26,9 @@ export class TemplateEngine {
     constructor(fileLoader: ITemplateBundleLoader, transformer: CalmTemplateTransformer) {
         this.config = fileLoader.getConfig();
         this.transformer = transformer;
-        this.templates = this.compileTemplates(fileLoader.getTemplateFiles());
+        const files = fileLoader.getTemplateFiles();
+        this.rawTemplates = files;
+        this.templates = this.compileTemplates(files);
         this.registerTemplateHelpers();
     }
 
@@ -105,10 +109,7 @@ export class TemplateEngine {
     }
 
     /**
-     * Generate YAML front-matter for a document based on template configuration
-     * @param templateEntry - The template entry containing front-matter configuration
-     * @param context - The context data used to evaluate Handlebars expressions
-     * @returns A string containing the YAML front-matter with delimiters, or empty string if disabled
+     * Generate YAML front-matter for a document based on template configuration and alias context
      */
     private generateFrontMatter(templateEntry: TemplateEntry, context: any): string {
         const logger = TemplateEngine.logger;
@@ -120,13 +121,11 @@ export class TemplateEngine {
         const fm = templateEntry.frontmatter;
         const frontMatterObj: Record<string, any> = {};
 
-        // Compile and evaluate each front-matter field
         Object.entries(fm).forEach(([key, value]) => {
             if (key === 'enabled') return;
 
             if (typeof value === 'string') {
                 try {
-                    // Compile the handlebars expression and evaluate with context
                     const compiled = Handlebars.compile(value);
                     const evaluated = compiled(context);
                     frontMatterObj[key] = evaluated;
@@ -134,19 +133,34 @@ export class TemplateEngine {
                     logger.warn(`Failed to evaluate front-matter field "${key}": ${(err as Error).message}`);
                 }
             } else {
-                // Use literal value if not a string
                 frontMatterObj[key] = value;
             }
         });
 
-        // Generate YAML front-matter
+        // Do not inject alias or alias-json into FM; variables will be hydrated by context builder
+
         const lines = ['---'];
         Object.entries(frontMatterObj).forEach(([key, value]) => {
             lines.push(`${key}: ${value}`);
         });
         lines.push('---', '');
-
         return lines.join('\n');
+    }
+
+    private extractFrontMatter(raw: string): Record<string, any> | null {
+        if (!this.hasFrontMatter(raw)) return null;
+        const end = raw.indexOf('\n---', 4);
+        const block = end > 0 ? raw.substring(4, end) : raw.substring(4);
+        try {
+            const doc = yaml.load(block);
+            return typeof doc === 'object' && doc ? (doc as Record<string, any>) : null;
+        } catch {
+            return null;
+        }
+    }
+
+    private hasFrontMatter(content: string): boolean {
+        return /^\s*---\s*\n/.test(content);
     }
 
     private processTemplate(templateEntry: TemplateEntry, data: any, outputDir: string): void {
@@ -170,23 +184,70 @@ export class TemplateEngine {
         }
 
         const dataSource = this.resolveFromData(data, from);
-        const aliasName = alias || 'item';
+        let aliasName = alias || 'item';
         const outputTemplate = Handlebars.compile(output);
+        const scaffoldMode = process.env.DOCIFY_SCAFFOLD === 'true';
+        const rawTemplate = this.rawTemplates[template] ?? '';
 
-        const buildAliasContext = (instance: any): Record<string, unknown> => {
-            if (!instance || typeof instance !== 'object') return { [aliasName]: instance };
-            // shallow clone to avoid mutating original
-            const aliasObj: Record<string, unknown> = { ...instance };
-            // add dashed/kebab shadow properties for camelCase keys
-            Object.keys(instance).forEach(k => {
-                if (typeof k === 'string' && /[A-Z]/.test(k)) {
-                    const kebab = k
-                        .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-                        .toLowerCase();
-                    if (!(kebab in aliasObj)) aliasObj[kebab] = (instance as Record<string, unknown>)[k];
+        // If template has existing front-matter and no alias provided in config, recover alias from FM
+        const fmParsed = this.extractFrontMatter(rawTemplate);
+        let fmVars: Record<string, string> | undefined;
+        if (fmParsed) {
+            // capture string-valued FM entries to attempt path resolution later into context
+            fmVars = Object.fromEntries(
+                Object.entries(fmParsed)
+                    .filter(([k, v]) => typeof v === 'string')
+                    .map(([k, v]) => [k, v as string])
+            );
+        }
+
+        const resolveVariablePaths = (vars: Record<string, string> | undefined, rootModel: any): Record<string, unknown> => {
+            if (!vars) return {};
+            const resolved: Record<string, unknown> = {};
+            for (const [varName, expr] of Object.entries(vars)) {
+                try {
+                    const syntheticRoot = { document: rootModel };
+                    const value = TemplatePathExtractor.convertFromDotNotation(syntheticRoot, expr, {});
+                    resolved[varName] = value;
+                } catch (err) {
+                    TemplateEngine.logger.warn(`Failed to resolve FM variable path ${varName}="${expr}": ${(err as Error).message}`);
                 }
-            });
-            return { [aliasName]: aliasObj, ...instance }; // keep original root fields accessible
+            }
+            return resolved;
+        };
+
+        const buildAliasContext = (instance: any, rootModel: any): Record<string, unknown> => {
+            const fmResolved = resolveVariablePaths(fmVars, rootModel);
+
+            // Base object for alias injection
+            const aliasObj: Record<string, unknown> = {};
+            if (aliasName && instance && typeof instance === 'object') {
+                // create dashed shadows for readability
+                const shadow: Record<string, unknown> = { ...instance };
+                Object.keys(instance).forEach(k => {
+                    if (typeof k === 'string' && /[A-Z]/.test(k)) {
+                        const kebab = k.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
+                        if (!(kebab in shadow)) shadow[kebab] = (instance as Record<string, unknown>)[k];
+                    }
+                });
+                aliasObj[aliasName] = shadow;
+            } else if (aliasName) {
+                aliasObj[aliasName] = instance;
+            }
+
+            // Merge order: document → alias → fmResolved, with fm variables not clobbering alias unless explicitly same key
+            const context: Record<string, unknown> = { document: rootModel, ...aliasObj };
+            for (const [k, v] of Object.entries(fmResolved)) {
+                if (k === aliasName && aliasName in context) {
+                    // FM explicitly defines the alias key: allow override
+                    context[k] = v;
+                } else if (!(k in context)) {
+                    context[k] = v;
+                } else {
+                    // keep existing (alias or other) if FM defines same key but not alias
+                }
+            }
+            return context;
         };
 
         if (outputType === 'repeated') {
@@ -195,35 +256,49 @@ export class TemplateEngine {
                 return;
             }
             for (const instance of dataSource) {
-                const ctx = buildAliasContext(instance);
+                const ctx = buildAliasContext(instance, data);
                 const filename = outputTemplate(ctx);
                 const outputPath = path.join(outputDir, filename);
                 fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-                // Generate front-matter and prepend to template content
+
+                if (scaffoldMode) {
+                    const hasFM = this.hasFrontMatter(rawTemplate);
+                    const frontMatter = hasFM ? '' : this.generateFrontMatter(templateEntry, ctx);
+                    fs.writeFileSync(outputPath, frontMatter + rawTemplate, 'utf8');
+                    logger.info(`\u2705 Scaffolded: ${outputPath}`);
+                    continue;
+                }
+
                 const frontMatter = this.generateFrontMatter(templateEntry, ctx);
                 const templateContent = this.templates[template](ctx);
                 const finalContent = frontMatter + templateContent;
                 fs.writeFileSync(outputPath, finalContent, 'utf8');
                 logger.info(`\u2705 Generated: ${outputPath}`);
             }
-        }
-        else if (outputType === 'single') {
+        } else if (outputType === 'single') {
             if (!dataSource) {
                 logger.warn(`\u26a0\ufe0f Single output template '${template}' resolved to undefined/null from path '${from}'.`);
                 return;
             }
-            const ctx = buildAliasContext(dataSource);
+            const ctx = buildAliasContext(dataSource, data);
             const filename = outputTemplate(ctx);
             const outputPath = path.join(outputDir, filename);
             fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-            // Generate front-matter and prepend to template content
+
+            if (scaffoldMode) {
+                const hasFM = this.hasFrontMatter(rawTemplate);
+                const frontMatter = hasFM ? '' : this.generateFrontMatter(templateEntry, ctx);
+                fs.writeFileSync(outputPath, frontMatter + rawTemplate, 'utf8');
+                logger.info(`\u2705 Scaffolded: ${outputPath}`);
+                return;
+            }
+
             const frontMatter = this.generateFrontMatter(templateEntry, ctx);
             const templateContent = this.templates[template](ctx);
             const finalContent = frontMatter + templateContent;
             fs.writeFileSync(outputPath, finalContent, 'utf8');
             logger.info(`\u2705 Generated: ${outputPath}`);
-        }
-        else {
+        } else {
             logger.warn(`\u26a0\ufe0f Unknown output-type: ${outputType}`);
         }
     }

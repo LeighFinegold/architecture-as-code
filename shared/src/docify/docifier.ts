@@ -10,6 +10,7 @@ export class Docifier {
     };
 
     private templateProcessor: TemplateProcessor;
+    private readonly scaffold: boolean; // new flag
 
     constructor(
         mode: DocifyMode,
@@ -18,7 +19,8 @@ export class Docifier {
         urlToLocalPathMapping: Map<string, string>,
         templateProcessingMode: TemplateProcessingMode = 'bundle',
         templatePath?: string,
-        clearOutputDirectory: boolean = false
+        clearOutputDirectory: boolean = false,
+        scaffold: boolean = false // new param
     ) {
         if (mode === 'SAD') {
             throw new Error('Mode "SAD" is not supported.');
@@ -34,6 +36,12 @@ export class Docifier {
         //TODO: need to move docifier and graphing package to widget framework. Until then widgets will clash
         const supportWidgetEngine = true;
 
+        this.scaffold = scaffold;
+        // Log scaffold flag state for visibility
+        console.info(`[Docifier] scaffold flag: ${this.scaffold}`);
+        // Expose scaffold mode to downstream template engine via env var (minimal wiring)
+        process.env.DOCIFY_SCAFFOLD = this.scaffold ? 'true' : 'false';
+
         this.templateProcessor = new TemplateProcessor(
             inputPath,
             finalTemplatePath,
@@ -46,6 +54,7 @@ export class Docifier {
     }
 
     public async docify(): Promise<void> {
+        // Placeholder: future scaffold behavior could act here based on this.scaffold
         await this.templateProcessor.processTemplate();
     }
 }

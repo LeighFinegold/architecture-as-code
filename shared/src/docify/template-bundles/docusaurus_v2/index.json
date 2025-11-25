@@ -11,7 +11,8 @@
         "enabled": true,
         "id": "{{node.unique-id}}",
         "title": "{{node.name}}",
-        "architecture": "{{pathToArchitecture}}"
+        "architecture": "{{pathToArchitecture}}",
+        "node": "nodes['unique-id']"
       }
     }
   ]

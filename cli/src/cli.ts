@@ -29,6 +29,7 @@ const TEMPLATE_OPTION = '-t, --template <path>';
 const TEMPLATE_DIR_OPTION = '-d, --template-dir <path>';
 const URL_MAPPING_OPTION = '-u, --url-to-local-file-mapping <path>';
 const CLEAR_OUTPUT_DIRECTORY_OPTION = '--clear-output-directory';
+const SCAFFOLD_OPTION = '--scaffold'; // new scaffold flag
 
 export function setupCLI(program: Command) {
     program
@@ -155,6 +156,7 @@ export function setupCLI(program: Command) {
         .requiredOption(ARCHITECTURE_OPTION, 'Path to the CALM architecture JSON file')
         .requiredOption(OUTPUT_OPTION, 'Path to output directory')
         .option(CLEAR_OUTPUT_DIRECTORY_OPTION, 'Clear the output directory before processing', false)
+        .option(SCAFFOLD_OPTION, 'Scaffold docs with placeholder or auxiliary content', false) // new option
         .option(TEMPLATE_OPTION, 'Path to a single .hbs or .md template file')
         .option(TEMPLATE_DIR_OPTION, 'Path to a directory of .hbs/.md templates')
         .option(URL_MAPPING_OPTION, 'Path to mapping file which maps URLs to local paths')
@@ -196,7 +198,8 @@ export function setupCLI(program: Command) {
                 localDirectory,
                 templateProcessingMode,
                 templatePath,
-                options.clearOutputDirectory
+                options.clearOutputDirectory,
+                options.scaffold // pass scaffold flag
             );
 
             await docifier.docify();
