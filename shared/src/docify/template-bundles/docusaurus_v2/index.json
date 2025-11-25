@@ -14,6 +14,34 @@
         "architecture": "{{pathToArchitecture}}",
         "node": "nodes['{{node.unique-id}}']"
       }
+    },
+    {
+      "template": "package.json",
+      "from": "document",
+      "output": "package.json",
+      "output-type": "single"
+    },
+    {
+      "template": "docusaurus.config.js",
+      "from": "document",
+      "output": "docusaurus.config.js",
+      "output-type": "single"
+    },
+    {
+      "template": "sidebar.js.hbs",
+      "from": "document",
+      "output": "sidebars.js",
+      "output-type": "single"
+    },
+    {
+      "template": "index.md.hbs",
+      "from": "document",
+      "output": "docs/index.md",
+      "output-type": "single",
+      "frontmatter": {
+        "enabled": true,
+        "slug": "/"
+      }
     }
   ]
 }

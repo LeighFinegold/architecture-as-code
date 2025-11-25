@@ -25,7 +25,6 @@
         "relationships.hbs",
         "table-template.html",
         "row-template.html",
-        "metadata.hbs"
       ]
     },
     {

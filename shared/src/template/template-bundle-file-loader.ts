@@ -51,23 +51,63 @@ export class SelfProvidedTemplateLoader implements ITemplateBundleLoader {
 export class SelfProvidedDirectoryTemplateLoader implements ITemplateBundleLoader {
     private readonly config: IndexFile;
     private readonly templateFiles: Record<string, string> = {};
+    // Add a class-specific logger similar to TemplateBundleFileLoader
+    private static _logger: Logger | undefined;
+    private static get logger(): Logger {
+        if (!this._logger) {
+            this._logger = initLogger(process.env.DEBUG === 'true', SelfProvidedDirectoryTemplateLoader.name);
+        }
+        return this._logger;
+    }
+
+    private static walk(dir: string, cb: (absolute: string, relative: string) => void) {
+        const base = path.resolve(dir);
+        const recurse = (d: string) => {
+            for (const entry of fs.readdirSync(d)) {
+                const abs = path.join(d, entry);
+                const rel = path.relative(base, abs);
+                const stat = fs.statSync(abs);
+                if (stat.isDirectory()) {
+                    SelfProvidedDirectoryTemplateLoader.logger.debug(`📁 Skipping into directory: ${rel}`);
+                    recurse(abs);
+                } else if (stat.isFile()) {
+                    cb(abs, rel);
+                } else {
+                    SelfProvidedDirectoryTemplateLoader.logger.debug(`🚫 Skipping non-regular entry: ${rel}`);
+                }
+            }
+        };
+        recurse(base);
+    }
 
     constructor(templateDir: string) {
+        const logger = SelfProvidedDirectoryTemplateLoader.logger;
+        logger.info(`📂 Loading self-provided template directory: ${templateDir}`);
 
         const entries: TemplateEntry[] = [];
 
-        const allFiles = fs.readdirSync(templateDir);
+        let discovered = 0;
+        let processed = 0;
+        SelfProvidedDirectoryTemplateLoader.walk(templateDir, (abs, rel) => {
+            discovered++;
+            try {
+                const content = fs.readFileSync(abs, 'utf8');
+                this.templateFiles[rel] = content;
+                entries.push({
+                    template: rel,
+                    from: 'document',
+                    output: rel, // preserve relative structure
+                    'output-type': 'single'
+                });
+                processed++;
+                logger.debug(`✅ Loaded file: ${rel}`);
+            } catch (e) {
+                logger.warn(`⚠️ Failed to read ${rel}: ${(e as Error).message}`);
+            }
+        });
 
-        for (const file of allFiles) {
-            this.templateFiles[file] = fs.readFileSync(path.join(templateDir, file), 'utf8');
-
-            entries.push({
-                template: file,
-                from: 'document',
-                output: file, // output file = template file
-                'output-type': 'single'
-            });
-        }
+        logger.info(`🧾 Discovered ${discovered} files; included ${processed} files as templates`);
+        logger.info(`🎯 Total Templates Loaded: ${entries.length}`);
 
         this.config = {
             name: 'Self Provided Template Directory',
