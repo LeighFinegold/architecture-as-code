@@ -1,7 +1,6 @@
 import * as fs from 'fs'
 import * as path from 'path'
 import * as os from 'os'
-import { parseFrontMatter } from './front-matter'
 import { DocifyProcessor } from './docify-processor'
 import { TemplateService } from './template-service'
 import { Logger } from '../core/ports/logger'
@@ -82,16 +81,9 @@ export class DocifyService {
 
     if (params.isTemplateMode && params.architectureFilePath && params.templateFilePath) {
       archFilePath = params.architectureFilePath
-      const parsed = parseFrontMatter(params.templateFilePath)
-
-      if (parsed) {
-        templateContentToUse = parsed.content
-        if (parsed.urlToLocalPathMapping) {
-          urlToLocalPathMapping = parsed.urlToLocalPathMapping
-        }
-      } else {
-        templateContentToUse = fs.readFileSync(params.templateFilePath, 'utf8')
-      }
+      // Load raw template content WITH front-matter intact so shared docify engine can parse FM variables
+      templateContentToUse = fs.readFileSync(params.templateFilePath, 'utf8')
+      // If URL mapping should still be supported via FM, reintroduce parsing here later.
     } else {
       archFilePath = params.currentFilePath as string
     }

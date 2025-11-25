@@ -2,8 +2,20 @@
 id: conference-website
 title: Conference Website
 architecture: /Users/leighfinegold/IdeaProjects/architecture-as-code/cli/test_fixtures/getting-started/STEP-3/conference-signup-with-flow.arch.json
-node: nodes['conference-website']
+node: document.nodes['conference-website']
 ---
-{{table node orientation="verticals"}}
+
+{{node}}
+
+Test
+
+{{table document.nodes['conference-website']   orientation="verticals"
+}} 
+
+
+
+
+
+
 
 

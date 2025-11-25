@@ -5,15 +5,18 @@
   "exports": {
     "./model": {
       "import": "./dist/model/index.js",
-      "types": "./dist/model/index.d.ts"
+      "types": "./dist/model/index.d.ts",
+      "default": "./dist/model/index.js"
     },
     "./types": {
       "import": "./dist/types/index.js",
-      "types": "./dist/types/index.d.ts"
+      "types": "./dist/types/index.d.ts",
+      "default": "./dist/types/index.js"
     },
     "./canonical": {
       "import": "./dist/canonical/template-models.js",
-      "types": "./dist/canonical/template-models.d.ts"
+      "types": "./dist/canonical/template-models.d.ts",
+      "default": "./dist/canonical/template-models.js"
     }
   },
   "files": [

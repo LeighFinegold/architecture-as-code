@@ -58,12 +58,10 @@ export class TemplateEngine {
                 return [];
             }
         });
-        // Register transformer-provided helpers
         Object.entries(helperFunctions).forEach(([name, fn]) => {
             Handlebars.registerHelper(name, fn);
             logger.info(`✅ Registered helper: ${name}`);
         });
-        // New helper: aliasKeys lists keys on an alias object (including dashed shadows)
         Handlebars.registerHelper('aliasKeys', (aliasObj: unknown) => {
             if (!aliasObj || typeof aliasObj !== 'object') return [];
             const keys = Object.keys(aliasObj as Record<string, unknown>);
@@ -75,55 +73,39 @@ export class TemplateEngine {
     public generate(data: any, outputDir: string): void {
         const logger = TemplateEngine.logger;
         logger.info('\n🔹 Starting Template Generation...');
-
         if (!fs.existsSync(outputDir)) {
             logger.info(`📂 Output directory does not exist. Creating: ${outputDir}`);
             fs.mkdirSync(outputDir, { recursive: true });
         }
-
         for (const templateEntry of this.config.templates) {
             this.processTemplate(templateEntry, data, outputDir);
         }
-
-        logger.info('\n\u2705 Template Generation Completed!');
+        logger.info('\n✅ Template Generation Completed!');
     }
 
-    // New helper: resolve dot/bracket path in `from` with exact-key fallback.
     private resolveFromData(root: any, from: string): any {
-        //log root and from
         TemplateEngine.logger.info(`Resolving 'from' path: ${from} in root: ${JSON.stringify(root)}`);
-
         if (!from) return undefined;
-        // Exact key fallback (legacy behaviour)
         if (Object.prototype.hasOwnProperty.call(root, from)) {
             return root[from];
         }
         try {
-            // Use the same path extractor semantics as templates for consistency.
-            const resolved = TemplatePathExtractor.convertFromDotNotation(root, from, {});
-            return resolved;
+            return TemplatePathExtractor.convertFromDotNotation(root, from, {});
         } catch (err) {
             TemplateEngine.logger.warn(`Failed to resolve 'from' path "${from}": ${(err as Error).message}`);
             return undefined;
         }
     }
 
-    /**
-     * Generate YAML front-matter for a document based on template configuration and alias context
-     */
     private generateFrontMatter(templateEntry: TemplateEntry, context: any): string {
         const logger = TemplateEngine.logger;
-
         if (!templateEntry.frontmatter?.enabled) {
             return '';
         }
-
         const fm = templateEntry.frontmatter;
         const frontMatterObj: Record<string, any> = {};
-
         Object.entries(fm).forEach(([key, value]) => {
             if (key === 'enabled') return;
-
             if (typeof value === 'string') {
                 try {
                     const compiled = Handlebars.compile(value);
@@ -136,13 +118,8 @@ export class TemplateEngine {
                 frontMatterObj[key] = value;
             }
         });
-
-        // Do not inject alias or alias-json into FM; variables will be hydrated by context builder
-
         const lines = ['---'];
-        Object.entries(frontMatterObj).forEach(([key, value]) => {
-            lines.push(`${key}: ${value}`);
-        });
+        Object.entries(frontMatterObj).forEach(([key, value]) => lines.push(`${key}: ${value}`));
         lines.push('---', '');
         return lines.join('\n');
     }
@@ -166,34 +143,35 @@ export class TemplateEngine {
     private unwrapDocument(root: any): any {
         let current = root;
         const hasDomainKeys = (obj: any) => obj && typeof obj === 'object' && (obj.nodes || obj.relationships || obj.flows);
-        // Peel nested document.document layers
         let safety = 0;
         while (current && typeof current === 'object' && current.document && typeof current.document === 'object' && safety < 5) {
             if (hasDomainKeys(current.document)) {
-                current = current.document; // found domain keys one level down
+                current = current.document;
                 break;
             }
-            // If next level has another .document with domain keys, keep unwrapping
             if (current.document.document && hasDomainKeys(current.document.document)) {
                 current = current.document.document;
                 break;
             }
-            // Otherwise move one level down and continue
             current = current.document;
             safety++;
         }
         return current;
     }
 
+    private stripExistingFrontMatter(content: string): string {
+        // Remove leading front-matter block if present
+        if (!this.hasFrontMatter(content)) return content;
+        return content.replace(/^---\s*\n[\s\S]*?\n---\s*\n?/, '');
+    }
+
     private processTemplate(templateEntry: TemplateEntry, data: any, outputDir: string): void {
         const logger = TemplateEngine.logger;
         const { template, from, output, 'output-type': outputType, partials, alias } = templateEntry;
-
         if (!this.templates[template]) {
-            logger.warn(`\u26a0\ufe0f Skipping unknown template: ${template}`);
+            logger.warn(`⚠️ Skipping unknown template: ${template}`);
             return;
         }
-
         if (partials) {
             for (const partial of partials) {
                 if (this.templates[partial]) {
@@ -204,14 +182,12 @@ export class TemplateEngine {
                 }
             }
         }
-
         const dataSource = this.resolveFromData(data, from);
         let aliasName = alias || 'item';
         const outputTemplate = Handlebars.compile(output);
         const scaffoldMode = process.env.DOCIFY_SCAFFOLD === 'true';
         const rawTemplate = this.rawTemplates[template] ?? '';
 
-        // If template has existing front-matter and no alias provided in config, recover alias from FM
         const fmParsed = this.extractFrontMatter(rawTemplate);
         let fmVars: Record<string, string> | undefined;
         if (fmParsed) {
@@ -226,55 +202,44 @@ export class TemplateEngine {
                         evaluationContext[k] = result;
                     } catch (err) {
                         TemplateEngine.logger.warn(`Failed to evaluate FM Handlebars for key ${k}: ${(err as Error).message}`);
-                        evaluated[k] = v;
+                        evaluated[k] = v as string;
                     }
                 }
             }
             fmVars = evaluated;
         }
 
-        const isPathExpression = (expr: string): boolean => {
-            // Contains dot or brackets OR starts with document. OR begins with known collection name
-            return /[\[\].]/.test(expr) || expr.startsWith('document.') || /^(nodes|relationships|flows|controls|metadata)\b/.test(expr);
-        };
+        const isPathExpression = (expr: string): boolean => /[\[\].]/.test(expr) || expr.startsWith('document.') || /^(nodes|relationships|flows|controls|metadata)\b/.test(expr);
 
         const resolveVariablePaths = (vars: Record<string, string> | undefined, rootModel: any): Record<string, unknown> => {
             if (!vars) return {};
             const resolved: Record<string, unknown> = {};
             const modelRoot = this.unwrapDocument(rootModel);
             const rootCtx = { ...modelRoot, document: modelRoot };
-            const idValue = vars.id; // capture id FM value if present
+            const idValue = vars.id;
+            const tryResolve = (pathExpr: string): unknown => {
+                try {
+                    return TemplatePathExtractor.convertFromDotNotation(rootCtx, pathExpr, {});
+                } catch { return undefined; }
+            };
             for (const [varName, expr] of Object.entries(vars)) {
                 if (!isPathExpression(expr)) {
                     resolved[varName] = expr;
                     continue;
                 }
-                let value: unknown;
-                const tryResolve = (pathExpr: string): unknown => {
-                    try {
-                        return TemplatePathExtractor.convertFromDotNotation(rootCtx, pathExpr, {});
-                    } catch {
-                        return undefined;
-                    }
-                };
-                value = tryResolve(expr);
+                let value = tryResolve(expr);
                 if (value === undefined && !expr.startsWith('document.')) {
                     value = tryResolve(`document.${expr}`);
                 }
-                // Fallback: auto-correct nodes['unique-id'] to nodes['<id>'] if id FM present and resolution empty
                 if ((value === undefined || (Array.isArray(value) && value.length === 0)) && idValue && expr === "nodes['unique-id']") {
                     const correctedExpr = `nodes['${idValue}']`;
                     TemplateEngine.logger.info(`Auto-correcting FM path ${expr} -> ${correctedExpr}`);
-                    value = tryResolve(correctedExpr);
-                    if (value === undefined) {
-                        value = tryResolve(`document.${correctedExpr}`);
-                    }
+                    value = tryResolve(correctedExpr) ?? tryResolve(`document.${correctedExpr}`);
                 }
                 if (value === undefined) {
                     TemplateEngine.logger.warn(`FM variable '${varName}' path '${expr}' did not resolve; keeping literal.`);
                     value = expr;
                 }
-                // Heuristic unwrap: if a single-element array and variable name is singular domain alias
                 if (Array.isArray(value) && value.length === 1 && ['node','relationship','flow','control','controlRequirement'].includes(varName)) {
                     value = value[0];
                 }
@@ -288,9 +253,7 @@ export class TemplateEngine {
             const modelRoot = this.unwrapDocument(rootModel);
             const domainVars = ['node', 'relationship', 'flow', 'control', 'controlRequirement'];
             const hasDomainAliasInFM = domainVars.some(d => d in fmResolved);
-
             const aliasObj: Record<string, unknown> = {};
-            // Suppress default 'item' alias if FM provides a domain-specific variable
             if (aliasName !== 'item' || !hasDomainAliasInFM) {
                 if (aliasName && instance && typeof instance === 'object') {
                     const shadow: Record<string, unknown> = { ...instance };
@@ -305,11 +268,10 @@ export class TemplateEngine {
                     aliasObj[aliasName] = instance;
                 }
             }
-
             const context: Record<string, unknown> = { document: modelRoot, ...aliasObj };
             for (const [k, v] of Object.entries(fmResolved)) {
                 if (k === aliasName && aliasName in context) {
-                    context[k] = v; // explicit override of alias
+                    context[k] = v; // FM overrides alias
                 } else if (!(k in context)) {
                     context[k] = v;
                 }
@@ -319,7 +281,7 @@ export class TemplateEngine {
 
         if (outputType === 'repeated') {
             if (!Array.isArray(dataSource)) {
-                logger.warn(`\u26a0\ufe0f Expected array for repeated output, but found non-array for ${template}`);
+                logger.warn(`⚠️ Expected array for repeated output, but found non-array for ${template}`);
                 return;
             }
             for (const instance of dataSource) {
@@ -327,46 +289,44 @@ export class TemplateEngine {
                 const filename = outputTemplate(ctx);
                 const outputPath = path.join(outputDir, filename);
                 fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-
                 if (scaffoldMode) {
                     const hasFM = this.hasFrontMatter(rawTemplate);
                     const frontMatter = hasFM ? '' : this.generateFrontMatter(templateEntry, ctx);
                     fs.writeFileSync(outputPath, frontMatter + rawTemplate, 'utf8');
-                    logger.info(`\u2705 Scaffolded: ${outputPath}`);
+                    logger.info(`✅ Scaffolded: ${outputPath}`);
                     continue;
                 }
-
                 const frontMatter = this.generateFrontMatter(templateEntry, ctx);
-                const templateContent = this.templates[template](ctx);
+                let templateContent = this.templates[template](ctx);
+                templateContent = this.stripExistingFrontMatter(templateContent);
                 const finalContent = frontMatter + templateContent;
                 fs.writeFileSync(outputPath, finalContent, 'utf8');
-                logger.info(`\u2705 Generated: ${outputPath}`);
+                logger.info(`✅ Generated: ${outputPath}`);
             }
         } else if (outputType === 'single') {
             if (!dataSource) {
-                logger.warn(`\u26a0\ufe0f Single output template '${template}' resolved to undefined/null from path '${from}'.`);
+                logger.warn(`⚠️ Single output template '${template}' resolved to undefined/null from path '${from}'.`);
                 return;
             }
             const ctx = buildAliasContext(dataSource, data);
             const filename = outputTemplate(ctx);
             const outputPath = path.join(outputDir, filename);
             fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-
             if (scaffoldMode) {
                 const hasFM = this.hasFrontMatter(rawTemplate);
                 const frontMatter = hasFM ? '' : this.generateFrontMatter(templateEntry, ctx);
                 fs.writeFileSync(outputPath, frontMatter + rawTemplate, 'utf8');
-                logger.info(`\u2705 Scaffolded: ${outputPath}`);
+                logger.info(`✅ Scaffolded: ${outputPath}`);
                 return;
             }
-
             const frontMatter = this.generateFrontMatter(templateEntry, ctx);
-            const templateContent = this.templates[template](ctx);
+            let templateContent = this.templates[template](ctx);
+            templateContent = this.stripExistingFrontMatter(templateContent);
             const finalContent = frontMatter + templateContent;
             fs.writeFileSync(outputPath, finalContent, 'utf8');
-            logger.info(`\u2705 Generated: ${outputPath}`);
+            logger.info(`✅ Generated: ${outputPath}`);
         } else {
-            logger.warn(`\u26a0\ufe0f Unknown output-type: ${outputType}`);
+            logger.warn(`⚠️ Unknown output-type: ${outputType}`);
         }
     }
 }
