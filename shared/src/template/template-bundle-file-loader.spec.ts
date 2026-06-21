@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { TemplateBundleFileLoader, SelfProvidedTemplateLoader, SelfProvidedDirectoryTemplateLoader } from './template-bundle-file-loader';
+import { TemplateBundleFileLoader, SelfProvidedTemplateLoader, SelfProvidedDirectoryTemplateLoader, walkTemplateDirectory, buildFrontMatterConfig } from './template-bundle-file-loader';
 import { IndexFile } from './types';
 import { Mock } from 'vitest';
 
@@ -16,6 +16,8 @@ describe('TemplateBundleFileLoader', () => {
 
     beforeEach(() => {
         vi.resetAllMocks();
+        // Default: treat every entry as a file unless a test overrides this.
+        (fs.statSync as Mock).mockReturnValue({ isDirectory: () => false });
     });
 
     it('should load index.json and template files correctly', () => {
@@ -87,6 +89,52 @@ describe('TemplateBundleFileLoader', () => {
 
         const loader = new TemplateBundleFileLoader(mockBundlePath);
         expect(loader.getTemplateFiles()).toEqual({});
+    });
+
+    it('should recursively load templates from nested directories keyed by relative path', () => {
+        const dirs = new Set([
+            mockBundlePath,
+            path.join(mockBundlePath, 'templates'),
+            path.join(mockBundlePath, 'templates', 'pages'),
+            path.join(mockBundlePath, 'partials'),
+        ]);
+
+        const fileContents: Record<string, string> = {
+            [mockIndexJsonPath]: JSON.stringify({
+                name: 'nested-bundle',
+                transformer: 'my-transformer',
+                templates: [{
+                    template: 'templates/pages/node.hbs',
+                    from: 'document.nodes',
+                    output: '{{id}}.md',
+                    'output-type': 'repeated',
+                    partials: ['partials/rel.hbs'],
+                }],
+            } as IndexFile),
+            [path.join(mockBundlePath, 'templates', 'pages', 'node.hbs')]: '{{name}} {{> partials/rel.hbs}}',
+            [path.join(mockBundlePath, 'partials', 'rel.hbs')]: 'rel partial',
+            [path.join(mockBundlePath, 'my-transformer.ts')]: 'export default {}',
+        };
+
+        const childrenOf: Record<string, string[]> = {
+            [mockBundlePath]: ['index.json', 'my-transformer.ts', 'templates', 'partials'],
+            [path.join(mockBundlePath, 'templates')]: ['pages'],
+            [path.join(mockBundlePath, 'templates', 'pages')]: ['node.hbs'],
+            [path.join(mockBundlePath, 'partials')]: ['rel.hbs'],
+        };
+
+        (fs.existsSync as Mock).mockImplementation((filePath: string) => filePath === mockIndexJsonPath);
+        (fs.readFileSync as Mock).mockImplementation((filePath: string) => fileContents[filePath]);
+        (fs.readdirSync as Mock).mockImplementation((dirPath: string) => childrenOf[dirPath] ?? []);
+        (fs.statSync as Mock).mockImplementation((p: string) => ({ isDirectory: () => dirs.has(p) }));
+
+        const loader = new TemplateBundleFileLoader(mockBundlePath);
+        const files = loader.getTemplateFiles();
+
+        expect(Object.keys(files).sort()).toEqual(['partials/rel.hbs', 'templates/pages/node.hbs']);
+        expect(files['templates/pages/node.hbs']).toContain('{{> partials/rel.hbs}}');
+        expect(files).not.toHaveProperty('index.json');
+        expect(files).not.toHaveProperty('my-transformer.ts');
     });
 });
 
@@ -312,6 +360,66 @@ widget-options:
                     'output-type': 'single'
                 }
             ]
+        });
+    });
+});
+
+describe('walkTemplateDirectory', () => {
+    beforeEach(() => {
+        vi.resetAllMocks();
+    });
+
+    it('should visit every file with forward-slash relative paths, recursing into subdirectories', () => {
+        const root = '/root';
+        const dirs = new Set([root, path.join(root, 'sub'), path.join(root, 'sub', 'deep')]);
+        const childrenOf: Record<string, string[]> = {
+            [root]: ['top.hbs', 'sub'],
+            [path.join(root, 'sub')]: ['mid.hbs', 'deep'],
+            [path.join(root, 'sub', 'deep')]: ['leaf.hbs'],
+        };
+
+        (fs.readdirSync as Mock).mockImplementation((dir: string) => childrenOf[dir] ?? []);
+        (fs.statSync as Mock).mockImplementation((p: string) => ({ isDirectory: () => dirs.has(p) }));
+
+        const visited: string[] = [];
+        walkTemplateDirectory(root, (_fullPath, relPath) => visited.push(relPath));
+
+        expect(visited.sort()).toEqual(['sub/deep/leaf.hbs', 'sub/mid.hbs', 'top.hbs']);
+    });
+
+    it('should pass the absolute full path to the visitor', () => {
+        const root = '/root';
+        (fs.readdirSync as Mock).mockImplementation((dir: string) => (dir === root ? ['a.hbs'] : []));
+        (fs.statSync as Mock).mockReturnValue({ isDirectory: () => false });
+
+        const fullPaths: string[] = [];
+        walkTemplateDirectory(root, (fullPath) => fullPaths.push(fullPath));
+
+        expect(fullPaths).toEqual([path.join(root, 'a.hbs')]);
+    });
+});
+
+describe('buildFrontMatterConfig', () => {
+    it('should return undefined when neither variables nor widget options are present', () => {
+        expect(buildFrontMatterConfig({}, {})).toBeUndefined();
+    });
+
+    it('should include only variables when no widget options are present', () => {
+        expect(buildFrontMatterConfig({ name: 'Doc' }, {})).toEqual({
+            variables: { name: 'Doc' }
+        });
+    });
+
+    it('should include only widget options when no variables are present', () => {
+        expect(buildFrontMatterConfig({}, { 'sample-widget': { enabled: false } })).toEqual({
+            widgetOptions: { 'sample-widget': { enabled: false } }
+        });
+    });
+
+    it('should include both variables and widget options when present', () => {
+        expect(buildFrontMatterConfig({ name: 'Doc' }, { 'sample-widget': { enabled: true } })).toEqual({
+            variables: { name: 'Doc' },
+            widgetOptions: { 'sample-widget': { enabled: true } }
         });
     });
 });
