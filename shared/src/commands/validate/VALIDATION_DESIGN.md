@@ -5,6 +5,14 @@ Technical design for CALM document validation in `shared` (`@finos/calm-models` 
 proposal for a first-class **ValidationRule** abstraction with two implementations (Spectral and
 custom-on-model).
 
+> **Status: adopted.** The `ValidationRule` + `ValidationEngine` abstraction described in §6 is
+> implemented. `validate()` now builds a `ValidationContext` and delegates to a
+> `ValidationEngine` (`validation-engine.ts`) that runs the registered rules
+> (`rules/spectral-rule.ts`, `rules/json-schema-rule.ts`, `rules/controls-rule.ts`,
+> `rules/node-details-rule.ts`). Shared pure helpers live in `validation-helpers.ts`; the rule
+> interfaces/types in `validation-rule.ts`. The external `ValidationOutcome` contract, error/warning
+> flags, and output ordering are unchanged.
+
 ---
 
 ## 1. Objectives
@@ -168,9 +176,11 @@ classDiagram
 ```
 
 **Notes on the current design**
-- Cycle safety lives in two places: `ModelWalker` (path-scoped `activeRefs`) for generic model
-  traversal, and a threaded `visitedUrls: Set<string>` for the node-details recursion.
-- `validateNodeDetails` recurses by calling back into the orchestrator via the injected
+- Cycle safety lives in two independent places: `ModelWalker` (path-scoped `activeRefs`) is the
+  generic model traversal that backs the **dereference visitor** (template/docify path); the
+  validation node-details recursion uses its own threaded `visitedUrls: Set<string>`. The two do
+  not interact — validation does not currently use `ModelWalker`.
+- `validateNodeDetails` recurses by calling back into the engine via the injected
   `ArchitectureValidator` (avoids a circular import) and forks a cache-seeded `SchemaDirectory` per
   sub-architecture for AJV schema-id isolation.
 
@@ -222,8 +232,10 @@ Introduce `ValidationRule` as the unit of validation, with a `ValidationContext`
 `ValidationOutput[]` output, executed by a `ValidationEngine`. Provide **two implementations**:
 
 - `SpectralValidationRule` — adapts a Spectral `RulesetDefinition` (raw-JSON / JSONPath rules).
-- `ModelValidationRule` — a check over the **typed** `CalmCore` model, using `ModelWalker` for
-  cycle-safe traversal. `validateAllControls` and `validateNodeDetails` become `ModelValidationRule`s.
+- `ModelValidationRule` — a check over the **typed** `CalmCore` model. `validateAllControls` and
+  `validateNodeDetails` become `ModelValidationRule`s. As built, they traverse with bespoke
+  iteration (`iterateControls`, node iteration) + a `visitedUrls` set; `ModelWalker` is available as
+  a shared cycle-safe traversal they *may* adopt in future but do not use today.
 
 ```mermaid
 classDiagram
@@ -278,7 +290,7 @@ classDiagram
     ValidationRule <|.. ModelValidationRule
     ModelValidationRule <|-- ControlsRule
     ModelValidationRule <|-- NodeDetailsRule
-    ModelValidationRule ..> ModelWalker
+    ModelValidationRule ..> ModelWalker : optional (future)
     ValidationEngine o-- ValidationRule
     ValidationEngine --> ValidationContext
     ValidationEngine --> ValidationOutcome
@@ -327,23 +339,32 @@ sequenceDiagram
 ## 7. Recommendation
 
 - **Adopt `ValidationRule` + `ValidationEngine` incrementally**, without changing the external
-  contract (A1) or behaviour:
+  contract (A1) or behaviour: **✅ done.**
   1. Introduce `ValidationRule`, `ValidationContext`, `ValidationEngine` and wrap the **existing**
-     four phases as rules (`SpectralValidationRule`, `JsonSchemaRule`, `ControlsRule`,
-     `NodeDetailsRule`). Orchestrator becomes "build context → engine.validate".
-  2. Keep Spectral custom functions as-is under `SpectralValidationRule` (no rewrite).
+     four phases as rules (`SpectralValidationRule`, `JsonSchemaValidationRule`,
+     `ControlsValidationRule`, `NodeDetailsValidationRule`). Orchestrator is now "build context →
+     `engine.validate`". **✅ implemented.**
+  2. Keep Spectral custom functions as-is under `SpectralValidationRule` (no rewrite). **✅ kept.**
   3. Optionally, later, migrate selected JSONPath custom functions to `ModelValidationRule`s where
-     type-safety/readability wins.
+     type-safety/readability wins. *(future work — not done.)*
 - **Do not** collapse Spectral into the model layer or vice-versa; the two-implementation split is
   the point — Spectral stays best for declarative JSONPath assertions, `ModelValidationRule` for
   reference-following / typed-model semantics (controls, node-details, cross-entity invariants).
 
+### As-built notes
+- Cycle short-circuit for a failed pattern compilation (architecture-with-pattern) is modelled by an
+  optional `abort` flag on `RuleResult`; the engine stops after an aborting rule. Architecture-only
+  compile failures deliberately do **not** abort (matching prior behaviour).
+- Within-phase order is preserved via a stable sort, so `spectral-pattern` lints before
+  `spectral-architecture`, keeping output ordering identical to the old `mergeSpectralResults`.
+
 ## 8. Open questions
 
-- Should phases be **short-circuiting** (skip structural if lint fails) or always-run (current)?
-  Recommendation: keep always-run for completeness; make it a per-rule/engine policy.
-- Where should the `ValidationEngine` own **cycle state** — one `visitedUrls` on `ValidationContext`
-  (as now) or fold node-details into `ModelWalker`'s path-scoped set?
+- ~~Should phases be **short-circuiting**?~~ Resolved: always-run, except the historical
+  pattern-compile abort, encoded as `RuleResult.abort`.
+- ~~Where should the `ValidationEngine` own **cycle state**?~~ Resolved for now: one `visitedUrls`
+  on `ValidationContext` (no behaviour change). Folding node-details into `ModelWalker`'s
+  path-scoped set remains possible future work.
 - Do we expose rule **ids/phases** in `ValidationOutput` (better UX / filtering) — additive to A1?
 - Is `ValidationContext` the right seam for CALM Hub upload (it already has `SchemaDirectory`), or
   does Hub need a thinner facade?
