@@ -1,41 +1,45 @@
-import {CalmReferenceResolver} from '../resolver/calm-reference-resolver';
-import {Resolvable,ResolvableAndAdaptable} from '@finos/calm-models/model';
-import {CalmModelVisitor} from './calm-model-visitor';
-import {getErrorMessage} from '../error-utils';
+import { CalmReferenceResolver } from '../resolver/calm-reference-resolver';
+import { CalmModelVisitor } from './calm-model-visitor';
+import { ModelWalker } from './model-walker.js';
+import { initLogger, Logger } from '../logger.js';
 
+/**
+ * Dereferences every unresolved `Resolvable`/`ResolvableAndAdaptable` in the model.
+ *
+ * The traversal (including cycle safety and error collection) is owned by the shared
+ * {@link ModelWalker}; this visitor only supplies the per-node behaviour of resolving
+ * the reference via the injected {@link CalmReferenceResolver}.
+ */
 export class DereferencingVisitor implements CalmModelVisitor {
-    private resolver: CalmReferenceResolver;
+    private static _logger: Logger | undefined;
+    private readonly resolver: CalmReferenceResolver;
 
     constructor(resolver: CalmReferenceResolver) {
         this.resolver = resolver;
     }
 
-    async visit(obj: unknown): Promise<void> {
-        if (!obj || typeof obj !== 'object') return;
+    private static get logger(): Logger {
+        if (!this._logger) {
+            this._logger = initLogger(process.env.DEBUG === 'true', DereferencingVisitor.name);
+        }
+        return this._logger;
+    }
 
-        if (obj instanceof Resolvable || obj instanceof ResolvableAndAdaptable) {
-            if (!obj.isResolved && obj.reference) {
-                try {
-                    await obj.dereference(this.resolver.resolve.bind(this.resolver));
-                } catch (err) {
-                    console.warn('Failed to dereference Resolvable:', obj.reference, getErrorMessage(err));
+    async visit(obj: unknown): Promise<void> {
+        const walker = new ModelWalker({
+            onResolvable: async (node) => {
+                if (!node.isResolved && node.reference) {
+                    await node.dereference(this.resolver.resolve.bind(this.resolver));
                 }
             }
-            if (obj.isResolved) {
-                //allows for recursive dereferencing
-                await this.visit(obj.value);
-            }
-            return;
-        }
+        });
 
-        if (Array.isArray(obj)) {
-            await Promise.all(obj.map(item => this.visit(item)));
-            return;
-        }
+        await walker.walk(obj);
 
-        const values = Object.values(obj);
-        for (const value of values) {
-            await this.visit(value);
+        for (const error of walker.errors) {
+            DereferencingVisitor.logger.warn(
+                `Failed to dereference Resolvable: ${error.reference} ${error.message}`
+            );
         }
     }
 }
