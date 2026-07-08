@@ -1,102 +1,124 @@
 # Validation Design
 
 Technical design for CALM document validation in `shared` (`@finos/calm-models` model +
-`shared/src/commands/validate`). Covers the current architecture, the phased-validation model, and a
-proposal for a first-class **ValidationRule** abstraction with two implementations (Spectral and
-custom-on-model).
-
-> **Status: adopted.** The `ValidationRule` + `ValidationEngine` abstraction described in §6 is
-> implemented. `validate()` now builds a `ValidationContext` and delegates to a
-> `ValidationEngine` (`validation-engine.ts`) that runs the registered rules
-> (`rules/spectral-rule.ts`, `rules/json-schema-rule.ts`, `rules/controls-rule.ts`,
-> `rules/node-details-rule.ts`). Shared pure helpers live in `validation-helpers.ts`; the rule
-> interfaces/types in `validation-rule.ts`. The external `ValidationOutcome` contract, error/warning
-> flags, and output ordering are unchanged.
-
----
+`shared/src/commands/validate`). Validation is a phased pipeline built from **`ValidationRule`**
+units executed by a **`ValidationEngine`**. `validate(...)` builds a `ValidationContext` and calls
+`ValidationEngine.validate`, which runs the registered rules and aggregates their results into a
+single `ValidationOutcome`. Rules come in two families over a shared context: Spectral-backed
+(JSONPath over raw JSON) and model/schema-backed (AJV / typed `CalmCore`). Recursive resolution of a
+node's `detailed-architecture` is opt-in and resolver-controlled: it is governed by a reference
+resolution policy that defaults to shallow, so top-level validation never implicitly fetches
+sub-architectures.
 
 ## 1. Objectives
 
-- **O1 — One authoritative validator in `shared`.** Validation is a library concern, not a CLI
+- **O1: One authoritative validator in `shared`.** Validation is a library concern, not a CLI
   concern. The CLI, CALM Hub (upload), CalmStudio, and any future tool call the same
   `validate(...)` entry point so guarantees cannot be bypassed by hitting an API directly.
-- **O2 — Phased validation.** Run cheap/broad linting (Spectral) and structural schema validation
+- **O2: Phased validation.** Run cheap/broad linting (Spectral) and structural schema validation
   (JSON Schema) as distinct phases, plus semantic/model checks (controls, node-details recursion).
   A failure in one phase still lets other phases report, so users get a complete picture.
-- **O3 — Uniform, machine-readable output.** Every phase emits `ValidationOutput` items aggregated
+- **O3: Uniform, machine-readable output.** Every phase emits `ValidationOutput` items aggregated
   into a single `ValidationOutcome` with stable `code`, `severity`, JSON-pointer `path`, and
   `source`. Downstream (JUnit/JSON/pretty formatters, Hub UI) depends on this shape.
-- **O4 — Cycle- and reference-safe traversal.** Detailed architectures and control configs are
+- **O4: Cycle- and reference-safe traversal.** Detailed architectures and control configs are
   references that can form cycles; traversal must terminate and must not re-fetch or re-adapt more
   than necessary.
-- **O5 — Extensibility.** Adding a new check should not require touching the orchestrator. Today it
-  does (see §6).
+- **O5: Extensibility.** Adding a new check is registering a new `ValidationRule` with the engine;
+  the entry point does not change.
+- **O6: Opt-in deep resolution.** Deep (recursive) validation of referenced sub-architectures is a
+  caller-selected policy, off by default. A shallow validation checks only the supplied document; a
+  caller such as CalmHub opts in to deep validation when it wants sub-architectures resolved and
+  validated too.
 
 ## 2. Assumptions
 
-- **A1 — Downstream expects the current `ValidationOutcome` contract.** `hasErrors`/`hasWarnings`
+- **A1: Downstream expects the current `ValidationOutcome` contract.** `hasErrors`/`hasWarnings`
   drive process exit codes (`exitBasedOffOfValidationOutcome`); formatters read `jsonSchema*` and
-  `spectral*` output arrays and each `ValidationOutput` field. Changing the *internals* of
-  validation must **not** change this external contract.
-- **A2 — `SchemaDirectory` is the single resolution boundary.** All remote/relative document and
+  `spectral*` output arrays and each `ValidationOutput` field. Behaviour-preservation applies to this
+  external output *shape*; it does not mandate always-on recursion, which is policy-controlled (O6).
+- **A2: `SchemaDirectory` is the single resolution boundary.** All remote/relative document and
   schema loading goes through `SchemaDirectory` (backed by a `DocumentLoader`). Validators never
   fetch directly.
-- **A3 — The model owns references.** `Resolvable`/`ResolvableAndAdaptable` (calm-models) are the
+- **A3: The model owns references.** `Resolvable`/`ResolvableAndAdaptable` (calm-models) are the
   canonical representation of a `$ref`-like pointer. Raw documents are transient; only adapted model
   objects persist.
-- **A4 — Spectral operates on raw JSON; model checks operate on the typed model.** Spectral rules
+- **A4: Spectral operates on raw JSON; model checks operate on the typed model.** Spectral rules
   use JSONPath (`given`/`then`) over the stringified document. Model checks (controls, node-details)
-  operate on `CalmCore`. These are two different substrates today.
-- **A5 — A pattern may be an explicit CALM pattern or the CALM core schema.** The orchestrator
+  operate on `CalmCore`. These are two distinct substrates.
+- **A5: A pattern may be an explicit CALM pattern or the CALM core schema.** The entry point
   honours the architecture's `$schema` or an explicitly supplied pattern.
-- **A6 — Validation is read-only and side-effect-free** apart from logging and cache population in
+- **A6: Validation is read-only and side-effect-free** apart from logging and cache population in
   `SchemaDirectory`.
+- **A7: References are resolved lazily, only when necessary.** The calm-model `Resolvable` /
+  `CalmReferenceResolver.canResolve` seam means a reference is fetched only when a caller chooses to
+  dereference it. "When necessary" is therefore a policy decision: the resolution policy decides
+  which references (for example `detailed-architecture` documents) are resolvable in a given run.
 
-## 3. Current architecture (as-built)
+## 3. Architecture: `ValidationRule` + `ValidationEngine`
 
-`validate(architecture?, patternOrSchema?, timeline?, schemaDirectory?, debug)` is the single entry
-point. It dispatches by input combination to one of four flows, each returning a `ValidationOutcome`.
+`ValidationRule` is the unit of validation. Each rule declares an `id`, a `phase`
+(`ValidationPhase`), an `appliesTo(context)` predicate (usually a `mode` check), and a
+`run(context)` that returns a `RuleResult`. `ValidationEngine` is constructed with the list of rules;
+on `validate(context)` it:
+
+1. filters rules by `appliesTo(context)`;
+2. runs the survivors in ascending `phase` order (stable; registration order is preserved within a
+   phase);
+3. aggregates each `RuleResult` into a single `ValidationOutcome`, pushing `jsonSchemaOutputs` and
+   `spectralOutputs` into their respective buckets and OR-ing `hasErrors` / `hasWarnings`;
+4. stops early if a rule sets `RuleResult.abort`.
 
 ```mermaid
 classDiagram
-    class validate {
-        <<entry point>>
-        +validate(architecture, patternOrSchema, timeline, schemaDirectory, debug) ValidationOutcome
+    class ValidationEngine {
+        -rules: ValidationRule[]
+        +constructor(rules: ValidationRule[])
+        +validate(context) Promise~ValidationOutcome~
     }
-    class Dispatch {
-        <<module functions>>
-        +validateArchitectureAgainstPattern(arch, pattern, dir, debug, visited)
-        +validateArchitectureOnly(arch, dir, debug, visited)
-        +validatePatternOnly(pattern, dir, debug)
-        +validateTimeline(timeline, schema, dir, debug)
-        -validateArchitectureDispatch: ArchitectureValidator
-    }
-    class SpectralPhase {
-        +runSpectralValidations(doc, ruleset, source) SpectralResult
-    }
-    class JsonSchemaValidator {
-        -ajv: Ajv2020
-        +initialize() Promise
-        +validate(instance) ErrorObject[]
-    }
-    class validateAllControls {
-        <<function>>
-        +validateAllControls(arch, pattern, dir, debug)
-    }
-    class validateNodeDetails {
-        <<function>>
-        +validateNodeDetails(arch, dir, debug, recursiveValidator, visited)
-    }
-    class SchemaDirectory {
-        +getSchema(id) object
-        +loadDocument(id, type) object
-        +fork() SchemaDirectory
-        +loadSchemas()
-        +storeDocument(...)
-    }
-    class DocumentLoader {
+    class ValidationRule {
         <<interface>>
-        +loadMissingDocument(id, type)
+        +id: string
+        +description: string
+        +phase: ValidationPhase
+        +appliesTo(context) boolean
+        +run(context) Promise~RuleResult~
+    }
+    class SpectralValidationRule
+    class JsonSchemaValidationRule
+    class ControlsValidationRule
+    class NodeDetailsValidationRule
+
+    ValidationEngine o-- ValidationRule : registers
+    ValidationRule <|.. SpectralValidationRule
+    ValidationRule <|.. JsonSchemaValidationRule
+    ValidationRule <|.. ControlsValidationRule
+    ValidationRule <|.. NodeDetailsValidationRule
+```
+
+## 4. Context and result types
+
+`ValidationContext` is the single input passed to every rule; `RuleResult` is the per-rule output;
+`ValidationOutcome` is the aggregated external contract (A1).
+
+```mermaid
+classDiagram
+    class ValidationContext {
+        +mode: ValidationMode
+        +architecture?: object
+        +pattern?: object
+        +timeline?: object
+        +schemaDirectory?: SchemaDirectory
+        +references: CachingTrackingResolver
+        +debug: boolean
+        +engine: ValidationEngine
+    }
+    class RuleResult {
+        +jsonSchemaOutputs: ValidationOutput[]
+        +spectralOutputs: ValidationOutput[]
+        +hasErrors: boolean
+        +hasWarnings: boolean
+        +abort?: boolean
     }
     class ValidationOutcome {
         +jsonSchemaValidationOutputs: ValidationOutput[]
@@ -104,105 +126,62 @@ classDiagram
         +hasErrors: boolean
         +hasWarnings: boolean
     }
-    class ValidationOutput {
-        +code
-        +severity
-        +message
-        +path
-        +schemaPath
-        +source
-        +error(code,msg,path,opts)$
-        +warning(code,msg,path,opts)$
-    }
-    class SpectralResult {
-        +errors: boolean
-        +warnings: boolean
-        +spectralIssues: ValidationOutput[]
+    class ValidationPhase {
+        <<enumeration>>
+        LINT
+        STRUCTURAL
+        SEMANTIC
+        RECURSIVE
     }
 
-    validate --> Dispatch
-    Dispatch --> SpectralPhase
-    Dispatch --> JsonSchemaValidator
-    Dispatch --> validateAllControls
-    Dispatch --> validateNodeDetails
-    validateNodeDetails ..> Dispatch : recursiveValidator (ArchitectureValidator)
-    Dispatch --> ValidationOutcome
-    SpectralPhase --> SpectralResult
-    JsonSchemaValidator --> SchemaDirectory
-    validateAllControls --> SchemaDirectory
-    validateNodeDetails --> SchemaDirectory
-    SchemaDirectory --> DocumentLoader
-    ValidationOutcome o-- ValidationOutput
-    SpectralResult o-- ValidationOutput
+    ValidationEngine ..> ValidationContext : consumes
+    ValidationRule ..> RuleResult : produces
+    ValidationEngine ..> ValidationOutcome : aggregates
+    ValidationRule ..> ValidationPhase
 ```
 
-### Supporting model & traversal (calm-models + shared)
+## 5. Rules
+
+Rules fall into two families; all implement the same `ValidationRule` interface (no shared base
+class).
+
+- **Spectral-backed**: `SpectralValidationRule` adapts a Spectral `RulesetDefinition` (raw-JSON /
+  JSONPath rules). Three are registered: `spectral-pattern`, `spectral-architecture`,
+  `spectral-timeline`. Custom checks such as `idsAreUnique`, `nodeIdExists`,
+  `interfaceIdExistsOnNode`, `sequenceNumbersAreUnique` are Spectral custom functions over JSONPath.
+- **Model/schema-backed**: reason over the parsed `CalmCore` model or an AJV schema:
+  `JsonSchemaValidationRule` (STRUCTURAL, AJV), `ControlsValidationRule` (SEMANTIC, via
+  `iterateControls`), and `NodeDetailsValidationRule` (RECURSIVE, node iteration). Node-details
+  tracks visited references through the `CachingTrackingResolver` on the context. `ModelWalker` is
+  the shared cycle-safe traversal available to model-backed rules.
+
+`NodeDetailsValidationRule.run` builds a child `ValidationContext` (a forked `SchemaDirectory` for
+AJV schema-id isolation, plus the shared `CachingTrackingResolver`) and calls `engine.validate`
+again for each detailed sub-architecture; the resolver's visited-reference tracking guarantees each
+sub-architecture is validated once and terminates on cycles.
 
 ```mermaid
-classDiagram
-    class Resolvable~T~ {
-        +reference: string
-        +isResolved: boolean
-        +value: T
-        +dereference(resolver) Promise
-    }
-    class ResolvableAndAdaptable~S,T~ {
-        +reference: string
-        +dereference(resolver) Promise
-    }
-    class AnyResolvable {
-        <<type>>
-    }
-    class ModelWalker {
-        -resolver: CalmReferenceResolver
-        -hook?: ResolvableHook
-        +errors: ModelWalkError[]
-        +walk(obj, path, activeRefs)
-    }
-    class ResolvableHook {
-        <<interface>>
-        +onResolvable(node, path)
-    }
-    class DereferencingVisitor {
-        +visit(obj)
-    }
-    class iterateControls {
-        <<generator>>
-        +iterateControls(architecture) ControlLocation
-    }
-    AnyResolvable <|.. Resolvable
-    AnyResolvable <|.. ResolvableAndAdaptable
-    ModelWalker --> CalmReferenceResolver
-    ModelWalker ..> ResolvableHook : optional
-    ModelWalker ..> AnyResolvable
-    DereferencingVisitor --> ModelWalker
+sequenceDiagram
+    participant Caller
+    participant Engine as ValidationEngine
+    participant Rules as Registered rules
+    Caller->>Engine: validate(context)
+    Note over Engine,Rules: filter by appliesTo, stable-sort by phase
+    Engine->>Rules: run(context) per rule in phase order
+    Rules-->>Engine: RuleResult (outputs, flags, abort?)
+    Note over Engine: OR flags, bucket outputs, stop on abort
+    Engine-->>Caller: aggregated ValidationOutcome
 ```
 
-**Notes on the current design**
-- Both paths now dereference through a single resolver interface, `CalmReferenceResolver`
-  (`canResolve`/`resolve`). The **dereference visitor** (template/docify path) drives `ModelWalker`
-  with a resolver, and validation node-details loads sub-architectures through the same interface.
-- Cycle safety lives in two independent places, by design: `ModelWalker` uses path-scoped
-  `activeRefs` (resolve *every* occurrence, stop only true cycles — what docify needs), while the
-  validation node-details recursion uses the `CachingTrackingResolver`'s global visited-tracking
-  (validate each sub-architecture *once*). The *traversals* stay separate — validation needs the raw
-  JSON, forks a `SchemaDirectory` and re-enters the phase engine, none of which `ModelWalker` does.
-- `validateNodeDetails` recurses by calling back into the engine via the injected
-  `ArchitectureValidator` (avoids a circular import) and forks a cache-seeded `SchemaDirectory` per
-  sub-architecture for AJV schema-id isolation.
-- Reference loading, caching and visited-tracking are owned by a single `CachingTrackingResolver`
-  decorator (see §3.1), replacing the earlier ad-hoc `loadDocument` + `visitedUrls: Set<string>`
-  pairing.
+## 6. Reference resolution, caching and cycle safety
 
-## 3.1 Reference tracking + caching seam (`CachingTrackingResolver`)
-
-The CALM model is *lazily* dereferenced — a `ResolvableAndAdaptable<CalmCoreSchema, CalmCore>`
+The CALM model is *lazily* dereferenced: a `ResolvableAndAdaptable<CalmCoreSchema, CalmCore>`
 only calls `resolve(ref)` when a caller chooses to dereference it, and the resolve function returns
 the **raw** `CalmCoreSchema` before it is adapted to `CalmCore`. Node-details validation needs that
 raw document (for Spectral + JSON-Schema), so the resolve seam is the natural place to centralise:
 
-- **caching** — a reference is fetched at most once; repeat requests return the cached raw document;
-- **tracking** — every attempted reference is recorded, giving dedupe ("validate each
+- **caching**: a reference is fetched at most once; repeat requests return the cached raw document;
+- **tracking**: every attempted reference is recorded, giving dedupe ("validate each
   detailed-architecture once") and cycle safety without each caller keeping its own `Set`.
 
 `CachingTrackingResolver` is a **decorator** that `implements CalmReferenceResolver`, wrapping any
@@ -238,199 +217,117 @@ classDiagram
 ```
 
 A reference is marked *seen* before the underlying load is awaited, so a failed load still counts as
-seen (a sibling referencing the same failing URL is not retried) — preserving the historical
-`visitedUrls.add`-before-load semantics. Only successful loads populate the value cache. In
+seen (a sibling referencing the same failing URL is not retried), matching the
+`visitedUrls.add`-before-load behaviour originally implemented in PR #2778
+(https://github.com/finos/architecture-as-code/pull/2778). Only successful loads populate the value
+cache. In
 validation the decorator wraps a `SchemaDirectoryReferenceResolver` (which loads architecture
 documents via `schemaDirectory.loadDocument(ref, 'architecture')`); in docify the **caller**
 (`TemplateProcessor`) composes the decorator around its resolver (`Mapped` → `Composite`) so repeated
-references are fetched once. `DereferencingVisitor` itself is agnostic — it dereferences through
-whatever `CalmReferenceResolver` it is given. `ModelWalker` drives dereferencing through whichever
-`CalmReferenceResolver` it is given.
+references are fetched once. Both `DereferencingVisitor` and `ModelWalker` are agnostic: they
+dereference through whatever `CalmReferenceResolver` they are given; caching/tracking is purely the
+caller's composition choice.
 
-## 4. Phased validation
+### Resolution policy (design intent)
+
+Whether a given reference is resolvable is governed by a `ReferenceResolutionPolicy`, consulted in
+`canResolve`. The policy is a constructor input to the resolver adapter; the `CalmReferenceResolver`
+interface is unchanged. Two variants:
+
+- **shallow (default):** `canResolve` returns `false` for `detailed-architecture` document
+  references, so a shallow run never fetches or recurses into sub-architectures.
+- **deep (opt-in):** `canResolve` allows those references, so the node-details rule resolves and
+  validates each referenced sub-architecture (see §7).
+
+Because only the node-details rule uses `ValidationContext.references` (schemas load via
+`SchemaDirectory.getSchema` directly), the policy affects recursion alone. Child validation contexts
+reuse the same resolver, so the policy is inherited at every level of recursion. This is design
+intent; the policy type, its resolver wiring and the entry-point option are pending implementation.
+
+## 7. Phased validation
 
 For an architecture-against-pattern validation the phases are:
 
 ```mermaid
 flowchart TD
-    A[validate entry] --> B[Phase 1: Spectral lint<br/>pattern rules + architecture rules]
-    B --> C[Phase 2: JSON Schema<br/>compile pattern, validate architecture]
-    C --> D[Phase 3: Controls<br/>iterateControls -> requirement schema -> AJV]
-    D --> E[Phase 4: Node details<br/>recurse detailed-architecture<br/>two-phase per sub-arch]
+    A[validate entry] --> B[LINT: SpectralValidationRule x3<br/>pattern + architecture + timeline rulesets]
+    B --> C[STRUCTURAL: JsonSchemaValidationRule<br/>compile pattern, validate architecture]
+    C --> D[SEMANTIC: ControlsValidationRule<br/>iterateControls -> requirement schema -> AJV]
+    D --> E[RECURSIVE: NodeDetailsValidationRule<br/>recurse detailed-architecture per sub-arch]
     E --> F[Aggregate -> ValidationOutcome]
     F --> G[exitBasedOffOfValidationOutcome / formatOutput]
 ```
 
-- **Phase 1 — Spectral (lint / semantic-on-JSON).** `runSpectralValidations` runs a `RulesetDefinition`
-  (`rules-architecture`, `rules-pattern`, `rules-timeline`). Custom checks such as `idsAreUnique`,
-  `nodeIdExists`, `interfaceIdExistsOnNode`, `sequenceNumbersAreUnique` are Spectral **custom
-  functions** over JSONPath.
-- **Phase 2 — JSON Schema (structural).** `JsonSchemaValidator` compiles the pattern/core schema with
+- **LINT: Spectral (`SpectralValidationRule`).** Runs the `rules-pattern`, `rules-architecture`
+  and `rules-timeline` rulesets. Custom checks such as `idsAreUnique`, `nodeIdExists`,
+  `interfaceIdExistsOnNode`, `sequenceNumbersAreUnique` are Spectral custom functions over JSONPath.
+- **STRUCTURAL: JSON Schema (`JsonSchemaValidationRule`).** Compiles the pattern/core schema with
   AJV (async schema loading via `SchemaDirectory`) and validates the architecture.
-- **Phase 3 — Controls (semantic-on-model).** `validateAllControls` enumerates controls via
-  `iterateControls`, resolves each requirement schema (URL or `#`-pointer into the pattern) and
-  validates the control config against it with AJV.
-- **Phase 4 — Node details (recursive).** `validateNodeDetails` loads each
-  `details.detailed-architecture` through the shared `CachingTrackingResolver`, discovers its pattern
-  (`required-pattern` or `$schema`) and re-enters phases 1–4 for the sub-architecture, cycle-guarded
-  by that resolver's visited-reference tracking.
+- **SEMANTIC: Controls (`ControlsValidationRule`).** Enumerates controls via `iterateControls`,
+  resolves each requirement schema (URL or `#`-pointer into the pattern) and validates the control
+  config against it with AJV.
+- **RECURSIVE: Node details (`NodeDetailsValidationRule`).** For every node that carries a
+  `details.detailed-architecture` reference *that the resolution policy permits* (deep runs only; see
+  §6), loads that sub-architecture document through the shared `CachingTrackingResolver`, discovers
+  its pattern (`required-pattern` URL, else the document's `$schema`, else none) and re-enters the
+  whole engine on the sub-architecture, with mode `architecture-with-pattern` or `architecture-only`
+  depending on whether a pattern was found. Because re-entry runs every applicable phase, including
+  this one, the traversal is depth-first: a sub-architecture whose own nodes reference further
+  detailed-architectures recurses again. The shared resolver guarantees each referenced document is
+  validated at most once and that cycles terminate (an already-seen reference is skipped). Under the
+  shallow (default) policy no sub-architecture is resolvable, so the rule finds nothing to recurse
+  into and only the supplied document is validated; a reference the policy forbids is skipped
+  cleanly and does not produce an error.
 
-Phases 3–4 only run when a `SchemaDirectory` is available; all phases contribute to the same
-`ValidationOutcome` and OR their `hasErrors`/`hasWarnings` together.
+The SEMANTIC and RECURSIVE rules only apply when a `SchemaDirectory` is available.
 
-## 5. The problem this exposes
+### Aggregated outcome
 
-The four phases are **not uniform**. Phases 1–2 are engine-driven (Spectral, AJV). Phases 3–4 are
-hand-written traversals wired directly into the orchestrator. Two consequences:
+Every phase, at every resolved depth, contributes to a single flat `ValidationOutcome`. There is no
+nested result tree: findings from recursed sub-architectures are merged into the same two arrays as
+the top-level findings (`jsonSchemaValidationOutputs`, `spectralSchemaValidationOutputs`), and
+`hasErrors`/`hasWarnings` are OR-ed across all of them. Under a shallow run the outcome contains the
+top-level findings only. Depth is preserved only in each output's `path`, which is prefixed with the
+referencing node's `/nodes/{i}/details/detailed-architecture` at each level of recursion. So a
+JSON-Schema error two levels deep appears in the top-level outcome with a compound path such as:
 
-1. **Two substrates for "custom" checks.** A semantic rule (e.g. "every node id is unique") is a
-   Spectral function over JSON; a semantic rule like "control config satisfies its requirement" is
-   bespoke TypeScript over the model. There is no common notion of "a validation rule".
-2. **The orchestrator knows every check.** Adding a check means editing
-   `validateArchitectureAgainstPattern`/`validateArchitectureOnly` (they already hand-inline the
-   controls and node-details calls in both branches). This violates O5.
-
-## 6. Proposal — a first-class `ValidationRule` abstraction
-
-Introduce `ValidationRule` as the unit of validation, with a `ValidationContext` input and
-`ValidationOutput[]` output, executed by a `ValidationEngine`. Provide **two implementations**:
-
-- `SpectralValidationRule` — adapts a Spectral `RulesetDefinition` (raw-JSON / JSONPath rules).
-- `ModelValidationRule` — a check over the **typed** `CalmCore` model. `validateAllControls` and
-  `validateNodeDetails` become `ModelValidationRule`s. As built, they traverse with bespoke
-  iteration (`iterateControls`, node iteration); node-details tracks visited references through a
-  `CachingTrackingResolver`. `ModelWalker` is available as a shared cycle-safe traversal they *may*
-  adopt in future but do not use today.
-
-```mermaid
-classDiagram
-    class ValidationRule {
-        <<interface>>
-        +id: string
-        +description: string
-        +phase: ValidationPhase
-        +run(context) Promise~ValidationOutput[]~
-    }
-    class ValidationContext {
-        +architecture: object
-        +model: CalmCore
-        +pattern?: object
-        +schemaDirectory: SchemaDirectory
-        +references: CachingTrackingResolver
-        +debug: boolean
-    }
-    class ValidationPhase {
-        <<enumeration>>
-        LINT
-        STRUCTURAL
-        SEMANTIC
-        RECURSIVE
-    }
-    class SpectralValidationRule {
-        -ruleset: RulesetDefinition
-        -source: string
-        +run(context)
-    }
-    class ModelValidationRule {
-        <<abstract>>
-        +run(context)
-    }
-    class ControlsRule {
-        +run(context)
-    }
-    class NodeDetailsRule {
-        +run(context)
-    }
-    class JsonSchemaRule {
-        +run(context)
-    }
-    class ValidationEngine {
-        -rules: ValidationRule[]
-        +register(rule)
-        +validate(context) ValidationOutcome
-    }
-
-    ValidationRule <|.. SpectralValidationRule
-    ValidationRule <|.. JsonSchemaRule
-    ValidationRule <|.. ModelValidationRule
-    ModelValidationRule <|-- ControlsRule
-    ModelValidationRule <|-- NodeDetailsRule
-    ModelValidationRule ..> ModelWalker : optional (future)
-    ValidationEngine o-- ValidationRule
-    ValidationEngine --> ValidationContext
-    ValidationEngine --> ValidationOutcome
-    ValidationRule --> ValidationOutput
+```text
+/nodes/0/details/detailed-architecture/nodes/2/details/detailed-architecture/relationships/1
 ```
 
-**Execution flow with the engine**
+A sub-architecture reference the policy permits but that cannot be loaded or validated is reported as
+a single `node-details-validation` error at the referencing node's
+`/nodes/{i}/details/detailed-architecture` path. A reference the policy forbids is not an error.
 
-```mermaid
-sequenceDiagram
-    participant Caller
-    participant Engine as ValidationEngine
-    participant R1 as SpectralValidationRule
-    participant R2 as JsonSchemaRule
-    participant R3 as ControlsRule
-    participant R4 as NodeDetailsRule
-    Caller->>Engine: validate(context)
-    Engine->>R1: run(context)   %% LINT
-    Engine->>R2: run(context)   %% STRUCTURAL
-    Engine->>R3: run(context)   %% SEMANTIC
-    Engine->>R4: run(context)   %% RECURSIVE (re-enters Engine per sub-arch)
-    R4-->>Engine: outputs
-    Engine-->>Caller: aggregated ValidationOutcome
-```
+### Callers and CalmHub
 
-### What this buys us
-- **O5 extensibility:** new checks = new `ValidationRule` registered with the engine; the
-  orchestrator stops growing.
-- **Uniform semantics for "custom" checks:** a rule author chooses substrate — JSONPath
-  (`SpectralValidationRule`) or typed model (`ModelValidationRule`) — but both produce
-  `ValidationOutput[]` and are scheduled the same way.
-- **Node-details recursion becomes ordinary:** `NodeDetailsRule.run` builds a child
-  `ValidationContext` (forked `SchemaDirectory`, shared `CachingTrackingResolver`) and calls
-  `engine.validate` again — the recursion the orchestrator hand-threads today.
-- **Migration path for Spectral custom functions:** model-oriented checks (`idsAreUnique`,
-  `nodeIdExists`, …) *can* move to `ModelValidationRule`s over `CalmCore` if/when we want type-safe,
-  non-JSONPath checks — but this is optional and can be incremental.
+The resolution policy is chosen by the caller. The CLI defaults to deep (with a shallow opt-out flag)
+to preserve its existing behaviour, while the calm-server route and CalmHub default to shallow and
+opt in to deep when a recursive validation is wanted. CalmHub is the primary driver of deep runs,
+resolving and validating sub-architectures on demand. The caller wiring is design intent and pending
+implementation.
 
-### Costs / risks
-- New indirection; the current four-phase flow is simple and well-tested (44 ported + suite).
-- Ordering/short-circuit semantics must be defined (today: all phases always run and OR their
-  flags). The engine must preserve A1 exactly (same `ValidationOutcome` shape and flag semantics).
-- `ValidationContext` couples several inputs; needs care so `ModelValidationRule`s don't reach for
-  things they shouldn't (keep raw JSON vs model access explicit).
+## 8. Open questions and future direction
 
-## 7. Recommendation
+The following are known gaps and directions the current design does not yet cover. They are recorded
+as design intent, not settled behaviour.
 
-- **Adopt `ValidationRule` + `ValidationEngine` incrementally**, without changing the external
-  contract (A1) or behaviour: **✅ done.**
-  1. Introduce `ValidationRule`, `ValidationContext`, `ValidationEngine` and wrap the **existing**
-     four phases as rules (`SpectralValidationRule`, `JsonSchemaValidationRule`,
-     `ControlsValidationRule`, `NodeDetailsValidationRule`). Orchestrator is now "build context →
-     `engine.validate`". **✅ implemented.**
-  2. Keep Spectral custom functions as-is under `SpectralValidationRule` (no rewrite). **✅ kept.**
-  3. Optionally, later, migrate selected JSONPath custom functions to `ModelValidationRule`s where
-     type-safety/readability wins. *(future work — not done.)*
-- **Do not** collapse Spectral into the model layer or vice-versa; the two-implementation split is
-  the point — Spectral stays best for declarative JSONPath assertions, `ModelValidationRule` for
-  reference-following / typed-model semantics (controls, node-details, cross-entity invariants).
-
-### As-built notes
-- Cycle short-circuit for a failed pattern compilation (architecture-with-pattern) is modelled by an
-  optional `abort` flag on `RuleResult`; the engine stops after an aborting rule. Architecture-only
-  compile failures deliberately do **not** abort (matching prior behaviour).
-- Within-phase order is preserved via a stable sort, so `spectral-pattern` lints before
-  `spectral-architecture`, keeping output ordering identical to the old `mergeSpectralResults`.
-
-## 8. Open questions
-
-- ~~Should phases be **short-circuiting**?~~ Resolved: always-run, except the historical
-  pattern-compile abort, encoded as `RuleResult.abort`.
-- ~~Where should the `ValidationEngine` own **cycle state**?~~ Resolved: a single
-  `CachingTrackingResolver` on `ValidationContext` owns reference loading, caching and
-  visited-tracking (no behaviour change). Folding node-details into `ModelWalker`'s path-scoped set
-  remains possible future work.
-- Do we expose rule **ids/phases** in `ValidationOutput` (better UX / filtering) — additive to A1?
-- Is `ValidationContext` the right seam for CALM Hub upload (it already has `SchemaDirectory`), or
-  does Hub need a thinner facade?
+- **Default traversal and resolution policies.** By default, validation recurses into a node's
+  `detailed-architecture`. This rewrite still suffers from the same concern raised on
+  https://github.com/finos/architecture-as-code/pull/2778: the traversal is effectively always-on.
+  Making it configurable through a resolution policy, rather than always-on, is worth considering so
+  callers can decide when a deep run happens. The mechanism is left open here.
+- **Custom rules versus the default traversal.** Custom or organisation-specific rules may apply only
+  to specific documents or specific document types, which the generic default traversal does not
+  model. It is an open question how a caller such as CalmHub tells the calm-server which
+  organisation-specific rules to run, and how differing rule sets across a large organisation are
+  catered for. See
+  https://github.com/finos/architecture-as-code/issues/2716#issuecomment-4868731836 and issue #2566.
+- **Typed CALM document input.** `validate()` currently accepts four loosely-typed positional inputs
+  (`architecture`, `patternOrSchema`, `timeline`, `schemaDirectory`) and infers a mode from their
+  combination. A future direction is to accept a single typed CALM document from `calm-models` instead,
+  standardising the document type in one place. See issue #2770.
+- **CLI versus CalmHub.** Validation may work differently depending on the caller. The CLI is
+  user-driven and would default to recursive (deep) traversal to preserve its existing behaviour,
+  whereas CalmHub validates documents on upload and would decide when a deep validation is performed,
+  for example defaulting to a shallow run and opting in to a deep run only when needed.
