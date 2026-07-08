@@ -11,6 +11,7 @@ import { ValidationContext, ValidationMode } from './validation-rule.js';
 import { createDefaultValidationEngine, ValidationEngine } from './validation-engine.js';
 import { prettifyJson } from './validation-helpers.js';
 import { CachingTrackingResolver } from '../../resolver/caching-tracking-resolver.js';
+import { SchemaDirectoryReferenceResolver } from '../../resolver/schema-directory-reference-resolver.js';
 
 // Re-export the shared helpers from their new home so existing importers/tests keep working.
 export {
@@ -129,11 +130,7 @@ function buildValidationContext(
     debug: boolean,
     engine: ValidationEngine
 ): ValidationContext {
-    const references = new CachingTrackingResolver(ref =>
-        schemaDirectory
-            ? schemaDirectory.loadDocument(ref, 'architecture')
-            : Promise.reject(new Error(`Cannot resolve reference '${ref}' without a schema directory`))
-    );
+    const references = new CachingTrackingResolver(new SchemaDirectoryReferenceResolver(schemaDirectory));
     const base = { references, debug, engine };
 
     if (timeline) {

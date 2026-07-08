@@ -154,6 +154,8 @@ classDiagram
         <<type>>
     }
     class ModelWalker {
+        -resolver: CalmReferenceResolver
+        -hook?: ResolvableHook
         +errors: ModelWalkError[]
         +walk(obj, path, activeRefs)
     }
@@ -170,23 +172,27 @@ classDiagram
     }
     AnyResolvable <|.. Resolvable
     AnyResolvable <|.. ResolvableAndAdaptable
-    ModelWalker --> ResolvableHook
+    ModelWalker --> CalmReferenceResolver
+    ModelWalker ..> ResolvableHook : optional
     ModelWalker ..> AnyResolvable
     DereferencingVisitor --> ModelWalker
 ```
 
 **Notes on the current design**
-- Cycle safety lives in two independent places: `ModelWalker` (path-scoped `activeRefs`) is the
-  generic model traversal that backs the **dereference visitor** (template/docify path); the
-  validation node-details recursion tracks visited references through a threaded
-  `CachingTrackingResolver`. The two do not interact — validation does not currently use
-  `ModelWalker`.
+- Both paths now dereference through a single resolver interface, `CalmReferenceResolver`
+  (`canResolve`/`resolve`). The **dereference visitor** (template/docify path) drives `ModelWalker`
+  with a resolver, and validation node-details loads sub-architectures through the same interface.
+- Cycle safety lives in two independent places, by design: `ModelWalker` uses path-scoped
+  `activeRefs` (resolve *every* occurrence, stop only true cycles — what docify needs), while the
+  validation node-details recursion uses the `CachingTrackingResolver`'s global visited-tracking
+  (validate each sub-architecture *once*). The *traversals* stay separate — validation needs the raw
+  JSON, forks a `SchemaDirectory` and re-enters the phase engine, none of which `ModelWalker` does.
 - `validateNodeDetails` recurses by calling back into the engine via the injected
   `ArchitectureValidator` (avoids a circular import) and forks a cache-seeded `SchemaDirectory` per
   sub-architecture for AJV schema-id isolation.
-- Reference loading, caching and visited-tracking for node-details are owned by a single
-  `CachingTrackingResolver` (see §3.1), replacing the earlier ad-hoc `loadDocument` +
-  `visitedUrls: Set<string>` pairing.
+- Reference loading, caching and visited-tracking are owned by a single `CachingTrackingResolver`
+  decorator (see §3.1), replacing the earlier ad-hoc `loadDocument` + `visitedUrls: Set<string>`
+  pairing.
 
 ## 3.1 Reference tracking + caching seam (`CachingTrackingResolver`)
 
@@ -199,26 +205,47 @@ raw document (for Spectral + JSON-Schema), so the resolve seam is the natural pl
 - **tracking** — every attempted reference is recorded, giving dedupe ("validate each
   detailed-architecture once") and cycle safety without each caller keeping its own `Set`.
 
+`CachingTrackingResolver` is a **decorator** that `implements CalmReferenceResolver`, wrapping any
+inner resolver. This is the single resolver interface used by both the model dereference path and
+validation:
+
 ```mermaid
 classDiagram
+    class CalmReferenceResolver {
+        <<interface>>
+        +canResolve(ref) boolean
+        +resolve(ref) Promise
+    }
     class CachingTrackingResolver {
-        -loader: (ref) Promise
+        -delegate: CalmReferenceResolver
         -cache: Map~string, unknown~
         -seen: Set~string~
+        +canResolve(ref) boolean
         +resolve(ref) Promise
         +has(ref) boolean
         +get(ref) unknown
         +markSeen(ref) void
         +resolvedReferences: ReadonlySet~string~
     }
+    class SchemaDirectoryReferenceResolver {
+        -schemaDirectory: SchemaDirectory
+        +canResolve(ref) boolean
+        +resolve(ref) Promise
+    }
+    CalmReferenceResolver <|.. CachingTrackingResolver
+    CalmReferenceResolver <|.. SchemaDirectoryReferenceResolver
+    CachingTrackingResolver o-- CalmReferenceResolver : decorates
 ```
 
 A reference is marked *seen* before the underlying load is awaited, so a failed load still counts as
 seen (a sibling referencing the same failing URL is not retried) — preserving the historical
 `visitedUrls.add`-before-load semantics. Only successful loads populate the value cache. In
-production the resolver wraps `url => schemaDirectory.loadDocument(url, 'architecture')`; this bridges
-the `DocumentLoader` seam to a plain `(ref) => Promise` resolve function without merging the two
-abstractions.
+validation the decorator wraps a `SchemaDirectoryReferenceResolver` (which loads architecture
+documents via `schemaDirectory.loadDocument(ref, 'architecture')`); in docify the **caller**
+(`TemplateProcessor`) composes the decorator around its resolver (`Mapped` → `Composite`) so repeated
+references are fetched once. `DereferencingVisitor` itself is agnostic — it dereferences through
+whatever `CalmReferenceResolver` it is given. `ModelWalker` drives dereferencing through whichever
+`CalmReferenceResolver` it is given.
 
 ## 4. Phased validation
 

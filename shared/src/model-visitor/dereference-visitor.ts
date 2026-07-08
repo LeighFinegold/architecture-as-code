@@ -6,17 +6,16 @@ import { initLogger, Logger } from '../logger.js';
 /**
  * Dereferences every unresolved `Resolvable`/`ResolvableAndAdaptable` in the model.
  *
- * The traversal (including cycle safety and error collection) is owned by the shared
- * {@link ModelWalker}; this visitor only supplies the per-node behaviour of resolving
- * the reference via the injected {@link CalmReferenceResolver}.
+ * Traversal, dereferencing, cycle safety and error collection are all owned by the shared
+ * {@link ModelWalker}, which drives dereferencing through the injected {@link CalmReferenceResolver}.
+ * The visitor is agnostic to the resolver's behaviour — if caching or reference-tracking is wanted,
+ * the caller composes a {@link import('../resolver/caching-tracking-resolver').CachingTrackingResolver}
+ * (or any other decorator) around the resolver it passes in.
  */
 export class DereferencingVisitor implements CalmModelVisitor {
     private static _logger: Logger | undefined;
-    private readonly resolver: CalmReferenceResolver;
 
-    constructor(resolver: CalmReferenceResolver) {
-        this.resolver = resolver;
-    }
+    constructor(private readonly resolver: CalmReferenceResolver) {}
 
     private static get logger(): Logger {
         if (!this._logger) {
@@ -26,13 +25,7 @@ export class DereferencingVisitor implements CalmModelVisitor {
     }
 
     async visit(obj: unknown): Promise<void> {
-        const walker = new ModelWalker({
-            onResolvable: async (node) => {
-                if (!node.isResolved && node.reference) {
-                    await node.dereference(this.resolver.resolve.bind(this.resolver));
-                }
-            }
-        });
+        const walker = new ModelWalker(this.resolver);
 
         await walker.walk(obj);
 

@@ -5,7 +5,7 @@ import { CachingTrackingResolver } from '../../resolver/caching-tracking-resolve
 function ctx(overrides: Partial<ValidationContext> = {}): ValidationContext {
     return {
         mode: 'architecture-only',
-        references: new CachingTrackingResolver(() => Promise.reject(new Error('unused'))),
+        references: new CachingTrackingResolver({ canResolve: () => false, resolve: () => Promise.reject(new Error('unused')) }),
         debug: false,
         // engine is only used by recursive rules; fake rules here don't touch it.
         engine: undefined as unknown as ValidationEngine,

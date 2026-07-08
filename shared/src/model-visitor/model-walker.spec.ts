@@ -1,6 +1,13 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { Resolvable, ResolvableAndAdaptable } from '@finos/calm-models/model';
 import { ModelWalker, ResolvableHook } from './model-walker';
+import { CalmReferenceResolver, InMemoryResolver } from '../resolver/calm-reference-resolver';
+
+/** A resolver that never dereferences — for tests that pre-resolve their nodes and only observe. */
+const noopResolver: CalmReferenceResolver = {
+    canResolve: () => false,
+    resolve: async () => ({})
+};
 
 function recordingHook(): { hook: ResolvableHook, visits: { reference: string, path: string[] }[] } {
     const visits: { reference: string, path: string[] }[] = [];
@@ -18,11 +25,40 @@ describe('ModelWalker', () => {
         const obj = { nodes: [{ details: inner }] };
 
         const { hook, visits } = recordingHook();
-        await new ModelWalker(hook).walk(obj);
+        await new ModelWalker(noopResolver, hook).walk(obj);
 
         expect(visits).toHaveLength(1);
         expect(visits[0].reference).toBe('inner-ref');
         expect(visits[0].path).toEqual(['nodes', '[0]', 'details']);
+    });
+
+    it('dereferences unresolved resolvables through the injected resolver', async () => {
+        const resolve = vi.fn().mockResolvedValue({ leaf: true });
+        const resolver: CalmReferenceResolver = { canResolve: () => true, resolve };
+        const node = new Resolvable<object>('to-resolve');
+
+        const { hook, visits } = recordingHook();
+        await new ModelWalker(resolver, hook).walk({ item: node });
+
+        expect(resolve).toHaveBeenCalledWith('to-resolve');
+        expect(node.isResolved).toBe(true);
+        expect(visits).toHaveLength(1);
+        expect(visits[0].reference).toBe('to-resolve');
+    });
+
+    it('records a resolver failure as a walk error instead of throwing', async () => {
+        const resolver: CalmReferenceResolver = {
+            canResolve: () => true,
+            resolve: vi.fn().mockRejectedValue(new Error('load failed'))
+        };
+        const node = new Resolvable<object>('bad-ref');
+
+        const walker = new ModelWalker(resolver);
+        await walker.walk({ item: node });
+
+        expect(walker.errors).toHaveLength(1);
+        expect(walker.errors[0].reference).toBe('bad-ref');
+        expect(walker.errors[0].message).toContain('load failed');
     });
 
     it('terminates on a self-referential cycle and visits the reference once', async () => {
@@ -31,7 +67,7 @@ describe('ModelWalker', () => {
         await selfRef.dereference(async () => ({ child: selfRef }));
 
         const { hook, visits } = recordingHook();
-        await new ModelWalker(hook).walk(selfRef);
+        await new ModelWalker(noopResolver, hook).walk(selfRef);
 
         expect(visits.filter(v => v.reference === 'self-ref')).toHaveLength(1);
     });
@@ -43,7 +79,7 @@ describe('ModelWalker', () => {
         await b.dereference(async () => ({ next: a }));
 
         const { hook, visits } = recordingHook();
-        await new ModelWalker(hook).walk(a);
+        await new ModelWalker(noopResolver, hook).walk(a);
 
         expect(visits.map(v => v.reference).sort()).toEqual(['a-ref', 'b-ref']);
     });
@@ -54,7 +90,7 @@ describe('ModelWalker', () => {
         const obj = { nodes: [{ ref: shared1 }, { ref: shared2 }] };
 
         const { hook, visits } = recordingHook();
-        await new ModelWalker(hook).walk(obj);
+        await new ModelWalker(noopResolver, hook).walk(obj);
 
         expect(visits.filter(v => v.reference === 'shared-ref')).toHaveLength(2);
     });
@@ -68,7 +104,7 @@ describe('ModelWalker', () => {
                 throw new Error('kaboom');
             }
         };
-        const walker = new ModelWalker(hook);
+        const walker = new ModelWalker(noopResolver, hook);
         await walker.walk(obj);
 
         expect(walker.errors).toHaveLength(1);
@@ -79,7 +115,7 @@ describe('ModelWalker', () => {
 
     it('ignores primitives and null without invoking the hook', async () => {
         const { hook, visits } = recordingHook();
-        const walker = new ModelWalker(hook);
+        const walker = new ModelWalker(noopResolver, hook);
 
         await walker.walk(null);
         await walker.walk(42);
@@ -98,9 +134,19 @@ describe('ModelWalker', () => {
         );
 
         const { hook, visits } = recordingHook();
-        await new ModelWalker(hook).walk({ item: adaptable });
+        await new ModelWalker(noopResolver, hook).walk({ item: adaptable });
 
         expect(visits).toHaveLength(1);
         expect(visits[0].reference).toBe('adaptable-ref');
+    });
+
+    it('can be driven end-to-end by an InMemoryResolver', async () => {
+        const resolver = new InMemoryResolver({ 'x-ref': { leaf: true } });
+        const node = new Resolvable<object>('x-ref');
+
+        await new ModelWalker(resolver).walk({ item: node });
+
+        expect(node.isResolved).toBe(true);
+        expect(node.value).toEqual({ leaf: true });
     });
 });

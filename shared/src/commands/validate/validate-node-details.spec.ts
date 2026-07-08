@@ -4,7 +4,10 @@ import { ValidationOutput, ValidationOutcome } from './validation.output';
 import { CachingTrackingResolver } from '../../resolver/caching-tracking-resolver';
 
 function makeResolver(dir: SchemaDirectory): CachingTrackingResolver {
-    return new CachingTrackingResolver(url => dir.loadDocument(url, 'architecture'));
+    return new CachingTrackingResolver({
+        canResolve: () => true,
+        resolve: (url: string) => dir.loadDocument(url, 'architecture')
+    });
 }
 
 vi.mock('../../logger.js', () => ({
@@ -270,7 +273,7 @@ describe('validateNodeDetails', () => {
     });
 
     it('returns empty outputs when architecture cannot be parsed as CalmCore', async () => {
-        const result = await validateNodeDetails(null as unknown as object, makeSchemaDirectory(), false, noop, new CachingTrackingResolver(() => Promise.reject(new Error('unused'))));
+        const result = await validateNodeDetails(null as unknown as object, makeSchemaDirectory(), false, noop, new CachingTrackingResolver({ canResolve: () => false, resolve: () => Promise.reject(new Error('unused')) }));
         expect(result.jsonSchemaOutputs).toHaveLength(0);
         expect(result.hasErrors).toBe(false);
         expect(noop).not.toHaveBeenCalled();

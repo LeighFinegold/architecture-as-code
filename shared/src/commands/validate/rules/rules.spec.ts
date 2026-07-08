@@ -23,7 +23,7 @@ const fakeDir = {} as unknown as SchemaDirectory;
 function ctx(overrides: Partial<ValidationContext>): ValidationContext {
     return {
         mode: 'architecture-only',
-        references: new CachingTrackingResolver(() => Promise.reject(new Error('unused'))),
+        references: new CachingTrackingResolver({ canResolve: () => false, resolve: () => Promise.reject(new Error('unused')) }),
         debug: false,
         engine: undefined as unknown as ValidationEngine,
         ...overrides
@@ -92,7 +92,7 @@ describe('NodeDetailsValidationRule', () => {
             hasErrors: false,
             hasWarnings: true
         });
-        const references = new CachingTrackingResolver(() => Promise.reject(new Error('unused')));
+        const references = new CachingTrackingResolver({ canResolve: () => false, resolve: () => Promise.reject(new Error('unused')) });
         references.markSeen('seen');
 
         const result = await rule.run(ctx({ architecture: { a: 1 }, schemaDirectory: fakeDir, references }));
