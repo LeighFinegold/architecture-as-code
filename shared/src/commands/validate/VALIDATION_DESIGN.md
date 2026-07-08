@@ -178,11 +178,47 @@ classDiagram
 **Notes on the current design**
 - Cycle safety lives in two independent places: `ModelWalker` (path-scoped `activeRefs`) is the
   generic model traversal that backs the **dereference visitor** (template/docify path); the
-  validation node-details recursion uses its own threaded `visitedUrls: Set<string>`. The two do
-  not interact — validation does not currently use `ModelWalker`.
+  validation node-details recursion tracks visited references through a threaded
+  `CachingTrackingResolver`. The two do not interact — validation does not currently use
+  `ModelWalker`.
 - `validateNodeDetails` recurses by calling back into the engine via the injected
   `ArchitectureValidator` (avoids a circular import) and forks a cache-seeded `SchemaDirectory` per
   sub-architecture for AJV schema-id isolation.
+- Reference loading, caching and visited-tracking for node-details are owned by a single
+  `CachingTrackingResolver` (see §3.1), replacing the earlier ad-hoc `loadDocument` +
+  `visitedUrls: Set<string>` pairing.
+
+## 3.1 Reference tracking + caching seam (`CachingTrackingResolver`)
+
+The CALM model is *lazily* dereferenced — a `ResolvableAndAdaptable<CalmCoreSchema, CalmCore>`
+only calls `resolve(ref)` when a caller chooses to dereference it, and the resolve function returns
+the **raw** `CalmCoreSchema` before it is adapted to `CalmCore`. Node-details validation needs that
+raw document (for Spectral + JSON-Schema), so the resolve seam is the natural place to centralise:
+
+- **caching** — a reference is fetched at most once; repeat requests return the cached raw document;
+- **tracking** — every attempted reference is recorded, giving dedupe ("validate each
+  detailed-architecture once") and cycle safety without each caller keeping its own `Set`.
+
+```mermaid
+classDiagram
+    class CachingTrackingResolver {
+        -loader: (ref) Promise
+        -cache: Map~string, unknown~
+        -seen: Set~string~
+        +resolve(ref) Promise
+        +has(ref) boolean
+        +get(ref) unknown
+        +markSeen(ref) void
+        +resolvedReferences: ReadonlySet~string~
+    }
+```
+
+A reference is marked *seen* before the underlying load is awaited, so a failed load still counts as
+seen (a sibling referencing the same failing URL is not retried) — preserving the historical
+`visitedUrls.add`-before-load semantics. Only successful loads populate the value cache. In
+production the resolver wraps `url => schemaDirectory.loadDocument(url, 'architecture')`; this bridges
+the `DocumentLoader` seam to a plain `(ref) => Promise` resolve function without merging the two
+abstractions.
 
 ## 4. Phased validation
 
@@ -208,8 +244,9 @@ flowchart TD
   `iterateControls`, resolves each requirement schema (URL or `#`-pointer into the pattern) and
   validates the control config against it with AJV.
 - **Phase 4 — Node details (recursive).** `validateNodeDetails` loads each
-  `details.detailed-architecture`, discovers its pattern (`required-pattern` or `$schema`) and
-  re-enters phases 1–4 for the sub-architecture, cycle-guarded by the shared `visitedUrls` set.
+  `details.detailed-architecture` through the shared `CachingTrackingResolver`, discovers its pattern
+  (`required-pattern` or `$schema`) and re-enters phases 1–4 for the sub-architecture, cycle-guarded
+  by that resolver's visited-reference tracking.
 
 Phases 3–4 only run when a `SchemaDirectory` is available; all phases contribute to the same
 `ValidationOutcome` and OR their `hasErrors`/`hasWarnings` together.
@@ -234,8 +271,9 @@ Introduce `ValidationRule` as the unit of validation, with a `ValidationContext`
 - `SpectralValidationRule` — adapts a Spectral `RulesetDefinition` (raw-JSON / JSONPath rules).
 - `ModelValidationRule` — a check over the **typed** `CalmCore` model. `validateAllControls` and
   `validateNodeDetails` become `ModelValidationRule`s. As built, they traverse with bespoke
-  iteration (`iterateControls`, node iteration) + a `visitedUrls` set; `ModelWalker` is available as
-  a shared cycle-safe traversal they *may* adopt in future but do not use today.
+  iteration (`iterateControls`, node iteration); node-details tracks visited references through a
+  `CachingTrackingResolver`. `ModelWalker` is available as a shared cycle-safe traversal they *may*
+  adopt in future but do not use today.
 
 ```mermaid
 classDiagram
@@ -251,7 +289,7 @@ classDiagram
         +model: CalmCore
         +pattern?: object
         +schemaDirectory: SchemaDirectory
-        +visitedUrls: Set~string~
+        +references: CachingTrackingResolver
         +debug: boolean
     }
     class ValidationPhase {
@@ -323,8 +361,8 @@ sequenceDiagram
   (`SpectralValidationRule`) or typed model (`ModelValidationRule`) — but both produce
   `ValidationOutput[]` and are scheduled the same way.
 - **Node-details recursion becomes ordinary:** `NodeDetailsRule.run` builds a child
-  `ValidationContext` (forked `SchemaDirectory`, shared `visitedUrls`) and calls `engine.validate`
-  again — the recursion the orchestrator hand-threads today.
+  `ValidationContext` (forked `SchemaDirectory`, shared `CachingTrackingResolver`) and calls
+  `engine.validate` again — the recursion the orchestrator hand-threads today.
 - **Migration path for Spectral custom functions:** model-oriented checks (`idsAreUnique`,
   `nodeIdExists`, …) *can* move to `ModelValidationRule`s over `CalmCore` if/when we want type-safe,
   non-JSONPath checks — but this is optional and can be incremental.
@@ -362,9 +400,10 @@ sequenceDiagram
 
 - ~~Should phases be **short-circuiting**?~~ Resolved: always-run, except the historical
   pattern-compile abort, encoded as `RuleResult.abort`.
-- ~~Where should the `ValidationEngine` own **cycle state**?~~ Resolved for now: one `visitedUrls`
-  on `ValidationContext` (no behaviour change). Folding node-details into `ModelWalker`'s
-  path-scoped set remains possible future work.
+- ~~Where should the `ValidationEngine` own **cycle state**?~~ Resolved: a single
+  `CachingTrackingResolver` on `ValidationContext` owns reference loading, caching and
+  visited-tracking (no behaviour change). Folding node-details into `ModelWalker`'s path-scoped set
+  remains possible future work.
 - Do we expose rule **ids/phases** in `ValidationOutput` (better UX / filtering) — additive to A1?
 - Is `ValidationContext` the right seam for CALM Hub upload (it already has `SchemaDirectory`), or
   does Hub need a thinner facade?

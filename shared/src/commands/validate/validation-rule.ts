@@ -1,5 +1,6 @@
 import { SchemaDirectory } from '../../schema-directory.js';
 import { ValidationOutput } from './validation.output.js';
+import { CachingTrackingResolver } from '../../resolver/caching-tracking-resolver.js';
 import type { ValidationEngine } from './validation-engine.js';
 
 /**
@@ -58,8 +59,12 @@ export interface ValidationContext {
     timeline?: object;
     mode: ValidationMode;
     schemaDirectory?: SchemaDirectory;
-    /** Shared cycle-detection set threaded through recursive node-details validation. */
-    visitedUrls: Set<string>;
+    /**
+     * Shared caching/tracking resolver threaded through recursive node-details validation. It
+     * caches each loaded sub-architecture and records which references have been visited, providing
+     * both dedupe ("validate each sub-architecture once") and cycle safety.
+     */
+    references: CachingTrackingResolver;
     debug: boolean;
     /** The engine, so recursive rules can re-enter the pipeline for sub-architectures. */
     engine: ValidationEngine;

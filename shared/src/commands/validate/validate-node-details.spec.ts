@@ -1,6 +1,11 @@
 import { validateNodeDetails, ArchitectureValidator } from './validate-node-details';
 import { SchemaDirectory } from '../../schema-directory';
 import { ValidationOutput, ValidationOutcome } from './validation.output';
+import { CachingTrackingResolver } from '../../resolver/caching-tracking-resolver';
+
+function makeResolver(dir: SchemaDirectory): CachingTrackingResolver {
+    return new CachingTrackingResolver(url => dir.loadDocument(url, 'architecture'));
+}
 
 vi.mock('../../logger.js', () => ({
     initLogger: () => ({
@@ -66,7 +71,8 @@ describe('validateNodeDetails', () => {
 
     it('returns empty outputs when architecture has no node details', async () => {
         const arch = { nodes: [{ 'unique-id': 'n1', 'node-type': 'service', name: 'N', description: 'D' }] };
-        const result = await validateNodeDetails(arch, makeSchemaDirectory(), false, noop, new Set());
+        const dir = makeSchemaDirectory();
+        const result = await validateNodeDetails(arch, dir, false, noop, makeResolver(dir));
         expect(result.jsonSchemaOutputs).toHaveLength(0);
         expect(result.hasErrors).toBe(false);
         expect(noop).not.toHaveBeenCalled();
@@ -83,7 +89,7 @@ describe('validateNodeDetails', () => {
             }]
         };
         const schemaDir = makeSchemaDirectory();
-        const result = await validateNodeDetails(arch, schemaDir, false, noop, new Set());
+        const result = await validateNodeDetails(arch, schemaDir, false, noop, makeResolver(schemaDir));
         expect(schemaDir.loadDocument).toHaveBeenCalledWith('https://example.com/sub-arch.json', 'architecture');
         expect(noop).toHaveBeenCalledOnce();
         expect(result.hasErrors).toBe(false);
@@ -100,7 +106,7 @@ describe('validateNodeDetails', () => {
             }]
         };
         const schemaDir = makeSchemaDirectory();
-        await validateNodeDetails(arch, schemaDir, false, noop, new Set());
+        await validateNodeDetails(arch, schemaDir, false, noop, makeResolver(schemaDir));
         // schemaDir.getSchema should have been called with the $schema URL from subArchitecture
         expect(schemaDir.getSchema).toHaveBeenCalledWith('https://example.com/pattern.json');
         expect(noop).toHaveBeenCalledWith(
@@ -108,7 +114,7 @@ describe('validateNodeDetails', () => {
             patternDoc,
             expect.anything(),  // fresh schema dir
             false,
-            expect.any(Set)
+            expect.any(CachingTrackingResolver)
         );
     });
 
@@ -129,13 +135,13 @@ describe('validateNodeDetails', () => {
         };
         const schemaDir = makeSchemaDirectory();
         (schemaDir.getSchema as ReturnType<typeof vi.fn>).mockResolvedValue(explicitPattern);
-        await validateNodeDetails(arch, schemaDir, false, noop, new Set());
+        await validateNodeDetails(arch, schemaDir, false, noop, makeResolver(schemaDir));
         expect(noop).toHaveBeenCalledWith(
             subArchitecture,
             explicitPattern,
             expect.anything(),
             false,
-            expect.any(Set)
+            expect.any(CachingTrackingResolver)
         );
     });
 
@@ -152,7 +158,7 @@ describe('validateNodeDetails', () => {
         const schemaDir = makeSchemaDirectory({
             loadDocument: vi.fn().mockRejectedValue(new Error('not found'))
         });
-        const result = await validateNodeDetails(arch, schemaDir, false, noop, new Set());
+        const result = await validateNodeDetails(arch, schemaDir, false, noop, makeResolver(schemaDir));
         expect(result.hasErrors).toBe(true);
         expect(result.jsonSchemaOutputs).toHaveLength(1);
         expect(result.jsonSchemaOutputs[0].path).toBe('/nodes/0/details/detailed-architecture');
@@ -172,7 +178,7 @@ describe('validateNodeDetails', () => {
         };
         const schemaDir = makeSchemaDirectory();
         (noop as ReturnType<typeof vi.fn>).mockResolvedValue(errorOutcome('/nodes/0'));
-        const result = await validateNodeDetails(arch, schemaDir, false, noop, new Set());
+        const result = await validateNodeDetails(arch, schemaDir, false, noop, makeResolver(schemaDir));
         expect(result.hasErrors).toBe(true);
         expect(result.jsonSchemaOutputs).toHaveLength(1);
         expect(result.jsonSchemaOutputs[0].path).toBe('/nodes/0/details/detailed-architecture/nodes/0');
@@ -190,7 +196,7 @@ describe('validateNodeDetails', () => {
         };
         const schemaDir = makeSchemaDirectory();
         (noop as ReturnType<typeof vi.fn>).mockResolvedValue(errorOutcome('/'));
-        const result = await validateNodeDetails(arch, schemaDir, false, noop, new Set());
+        const result = await validateNodeDetails(arch, schemaDir, false, noop, makeResolver(schemaDir));
         expect(result.jsonSchemaOutputs[0].path).toBe('/nodes/0/details/detailed-architecture');
     });
 
@@ -205,9 +211,10 @@ describe('validateNodeDetails', () => {
                 details: { 'detailed-architecture': archUrl }
             }]
         };
-        const visited = new Set([archUrl]);
         const schemaDir = makeSchemaDirectory();
-        const result = await validateNodeDetails(arch, schemaDir, false, noop, visited);
+        const references = makeResolver(schemaDir);
+        references.markSeen(archUrl);
+        const result = await validateNodeDetails(arch, schemaDir, false, noop, references);
         expect(noop).not.toHaveBeenCalled();
         expect(result.hasErrors).toBe(false);
         expect(schemaDir.loadDocument).not.toHaveBeenCalled();
@@ -237,7 +244,7 @@ describe('validateNodeDetails', () => {
             .mockResolvedValueOnce(errorOutcome('/x'))
             .mockResolvedValueOnce(errorOutcome('/y'));
 
-        const result = await validateNodeDetails(arch, schemaDir, false, noop, new Set());
+        const result = await validateNodeDetails(arch, schemaDir, false, noop, makeResolver(schemaDir));
         expect(noop).toHaveBeenCalledTimes(2);
         expect(result.jsonSchemaOutputs).toHaveLength(2);
         expect(result.jsonSchemaOutputs[0].path).toBe('/nodes/0/details/detailed-architecture/x');
@@ -257,13 +264,13 @@ describe('validateNodeDetails', () => {
         const schemaDir = makeSchemaDirectory();
         const warningOutcome = new ValidationOutcome([], [], false, true);
         (noop as ReturnType<typeof vi.fn>).mockResolvedValue(warningOutcome);
-        const result = await validateNodeDetails(arch, schemaDir, false, noop, new Set());
+        const result = await validateNodeDetails(arch, schemaDir, false, noop, makeResolver(schemaDir));
         expect(result.hasWarnings).toBe(true);
         expect(result.hasErrors).toBe(false);
     });
 
     it('returns empty outputs when architecture cannot be parsed as CalmCore', async () => {
-        const result = await validateNodeDetails(null as unknown as object, makeSchemaDirectory(), false, noop, new Set());
+        const result = await validateNodeDetails(null as unknown as object, makeSchemaDirectory(), false, noop, new CachingTrackingResolver(() => Promise.reject(new Error('unused'))));
         expect(result.jsonSchemaOutputs).toHaveLength(0);
         expect(result.hasErrors).toBe(false);
         expect(noop).not.toHaveBeenCalled();
@@ -278,7 +285,7 @@ describe('validateNodeDetails', () => {
         };
         const schemaDir = makeSchemaDirectory();
         (noop as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('validator exploded'));
-        const result = await validateNodeDetails(arch, schemaDir, false, noop, new Set());
+        const result = await validateNodeDetails(arch, schemaDir, false, noop, makeResolver(schemaDir));
         expect(result.hasErrors).toBe(true);
         expect(result.jsonSchemaOutputs).toHaveLength(1);
         expect(result.jsonSchemaOutputs[0].path).toBe('/nodes/0/details/detailed-architecture');
@@ -297,9 +304,9 @@ describe('validateNodeDetails', () => {
             }]
         };
         const schemaDir = makeSchemaDirectory({ loadDocument: vi.fn().mockResolvedValue(subArchNoSchema) });
-        await validateNodeDetails(arch, schemaDir, false, noop, new Set());
+        await validateNodeDetails(arch, schemaDir, false, noop, makeResolver(schemaDir));
         expect(schemaDir.getSchema).not.toHaveBeenCalled();
-        expect(noop).toHaveBeenCalledWith(subArchNoSchema, undefined, expect.anything(), false, expect.any(Set));
+        expect(noop).toHaveBeenCalledWith(subArchNoSchema, undefined, expect.anything(), false, expect.any(CachingTrackingResolver));
     });
 
     it('falls back to $schema when required-pattern cannot be resolved', async () => {
@@ -316,8 +323,8 @@ describe('validateNodeDetails', () => {
         (schemaDir.getSchema as ReturnType<typeof vi.fn>)
             .mockResolvedValueOnce(undefined)  // required-pattern -> not found
             .mockResolvedValue(patternDoc);    // $schema fallback
-        await validateNodeDetails(arch, schemaDir, false, noop, new Set());
-        expect(noop).toHaveBeenCalledWith(subArchitecture, patternDoc, expect.anything(), false, expect.any(Set));
+        await validateNodeDetails(arch, schemaDir, false, noop, makeResolver(schemaDir));
+        expect(noop).toHaveBeenCalledWith(subArchitecture, patternDoc, expect.anything(), false, expect.any(CachingTrackingResolver));
     });
 
     it('validates with undefined pattern when $schema lookup throws', async () => {
@@ -329,8 +336,8 @@ describe('validateNodeDetails', () => {
         };
         const schemaDir = makeSchemaDirectory();
         (schemaDir.getSchema as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('schema lookup failed'));
-        await validateNodeDetails(arch, schemaDir, false, noop, new Set());
-        expect(noop).toHaveBeenCalledWith(subArchitecture, undefined, expect.anything(), false, expect.any(Set));
+        await validateNodeDetails(arch, schemaDir, false, noop, makeResolver(schemaDir));
+        expect(noop).toHaveBeenCalledWith(subArchitecture, undefined, expect.anything(), false, expect.any(CachingTrackingResolver));
     });
 
     it('coerces a non-Error string thrown while loading the sub-architecture', async () => {
@@ -341,7 +348,7 @@ describe('validateNodeDetails', () => {
             }]
         };
         const schemaDir = makeSchemaDirectory({ loadDocument: vi.fn().mockRejectedValue('string load failure') });
-        const result = await validateNodeDetails(arch, schemaDir, false, noop, new Set());
+        const result = await validateNodeDetails(arch, schemaDir, false, noop, makeResolver(schemaDir));
         expect(result.hasErrors).toBe(true);
         expect(result.jsonSchemaOutputs[0].message).toContain('string load failure');
     });
@@ -357,7 +364,7 @@ describe('validateNodeDetails', () => {
             }]
         };
         const schemaDir = makeSchemaDirectory({ loadDocument: vi.fn().mockRejectedValue({ status: 404 }) });
-        const result = await validateNodeDetails(arch, schemaDir, false, noop, new Set());
+        const result = await validateNodeDetails(arch, schemaDir, false, noop, makeResolver(schemaDir));
         expect(result.hasErrors).toBe(true);
         expect(result.jsonSchemaOutputs[0].message).toContain('[object Object]');
     });
@@ -372,7 +379,7 @@ describe('validateNodeDetails', () => {
             }]
         };
         const schemaDir = makeSchemaDirectory({ loadDocument: vi.fn().mockRejectedValue(circular) });
-        const result = await validateNodeDetails(arch, schemaDir, false, noop, new Set());
+        const result = await validateNodeDetails(arch, schemaDir, false, noop, makeResolver(schemaDir));
         expect(result.hasErrors).toBe(true);
         expect(result.jsonSchemaOutputs[0].message).toContain('[object Object]');
     });
@@ -395,7 +402,7 @@ describe('validateNodeDetails', () => {
             storeDocument: vi.fn(),
         };
         const schemaDir = makeSchemaDirectory({ fork: vi.fn().mockReturnValue(freshDir) });
-        await validateNodeDetails(arch, schemaDir, false, noop, new Set());
+        await validateNodeDetails(arch, schemaDir, false, noop, makeResolver(schemaDir));
         expect(schemaDir.fork).toHaveBeenCalledOnce();
         // The cache-seeding fork() means the fresh dir is used directly (no re-load of schemas);
         // the recursiveValidator must receive that forked dir.
@@ -404,7 +411,7 @@ describe('validateNodeDetails', () => {
             expect.anything(),
             freshDir,
             false,
-            expect.any(Set)
+            expect.any(CachingTrackingResolver)
         );
     });
 });

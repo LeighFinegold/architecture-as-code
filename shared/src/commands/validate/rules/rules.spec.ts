@@ -9,6 +9,7 @@ import { ValidationEngine } from '../validation-engine';
 import { validateAllControls } from '../validate-controls';
 import { validateNodeDetails } from '../validate-node-details';
 import { JsonSchemaValidator } from '../json-schema-validator';
+import { CachingTrackingResolver } from '../../../resolver/caching-tracking-resolver';
 
 vi.mock('../../../logger.js', () => ({
     initLogger: () => ({ info: vi.fn(), debug: vi.fn(), warn: vi.fn(), error: vi.fn() })
@@ -22,7 +23,7 @@ const fakeDir = {} as unknown as SchemaDirectory;
 function ctx(overrides: Partial<ValidationContext>): ValidationContext {
     return {
         mode: 'architecture-only',
-        visitedUrls: new Set<string>(),
+        references: new CachingTrackingResolver(() => Promise.reject(new Error('unused'))),
         debug: false,
         engine: undefined as unknown as ValidationEngine,
         ...overrides
@@ -91,11 +92,12 @@ describe('NodeDetailsValidationRule', () => {
             hasErrors: false,
             hasWarnings: true
         });
-        const visitedUrls = new Set<string>(['seen']);
+        const references = new CachingTrackingResolver(() => Promise.reject(new Error('unused')));
+        references.markSeen('seen');
 
-        const result = await rule.run(ctx({ architecture: { a: 1 }, schemaDirectory: fakeDir, visitedUrls }));
+        const result = await rule.run(ctx({ architecture: { a: 1 }, schemaDirectory: fakeDir, references }));
 
-        expect(validateNodeDetails).toHaveBeenCalledWith({ a: 1 }, fakeDir, false, expect.any(Function), visitedUrls);
+        expect(validateNodeDetails).toHaveBeenCalledWith({ a: 1 }, fakeDir, false, expect.any(Function), references);
         expect(result.jsonSchemaOutputs).toEqual([{ code: 'n' }]);
         expect(result.spectralOutputs).toEqual([{ code: 's' }]);
         expect(result.hasWarnings).toBe(true);

@@ -4,6 +4,7 @@ import { ValidationOutput, ValidationOutcome } from './validation.output.js';
 import { initLogger, Logger } from '../../logger.js';
 import { getErrorMessage } from '../../error-utils.js';
 import { tryParseCalmCore } from './calm-core-parse.js';
+import { CachingTrackingResolver } from '../../resolver/caching-tracking-resolver.js';
 
 type CalmNode = CalmCore['nodes'][number];
 
@@ -19,24 +20,25 @@ type NodeDetailResult = {
  * main validation pipeline (two-phase Spectral + JSON-Schema) without creating a circular
  * module dependency with validate.ts.
  *
- * The single `visitedUrls` set is threaded through unchanged so cycle detection is owned in
- * exactly one place regardless of whether a sub-architecture is validated with or without a
- * pattern.
+ * The single {@link CachingTrackingResolver} is threaded through unchanged so reference
+ * caching and cycle/dedupe tracking are owned in exactly one place regardless of whether a
+ * sub-architecture is validated with or without a pattern.
  */
 export type ArchitectureValidator = (
     architecture: object,
     pattern: object | undefined,
     schemaDirectory: SchemaDirectory,
     debug: boolean,
-    visitedUrls: Set<string>
+    references: CachingTrackingResolver
 ) => Promise<ValidationOutcome>;
 
 /**
  * Validate all node details in an architecture by recursively loading and validating any
  * referenced detailed-architecture sub-architectures.
  *
- * The raw sub-architecture document is loaded directly via the SchemaDirectory. Cycle safety
- * comes from a single `visitedUrls` set shared with the recursive validator, so a cyclic
+ * The raw sub-architecture document is loaded through the shared {@link CachingTrackingResolver},
+ * which caches each document and records which references have been visited. Cycle safety and
+ * "validate each sub-architecture once" both come from that tracking, so a cyclic
  * detailed-architecture terminates instead of recursing unbounded.
  *
  * Pattern resolution priority per node:
@@ -49,7 +51,7 @@ export async function validateNodeDetails(
     schemaDirectory: SchemaDirectory,
     debug: boolean,
     recursiveValidator: ArchitectureValidator,
-    visitedUrls: Set<string>
+    references: CachingTrackingResolver
 ): Promise<NodeDetailResult> {
     const logger = initLogger(debug, 'validate-node-details');
     const jsonSchemaOutputs: ValidationOutput[] = [];
@@ -63,7 +65,7 @@ export async function validateNodeDetails(
     }
 
     for (const [nodeIdx, node] of calmCore.nodes.entries()) {
-        const result = await validateNodeDetail(node, nodeIdx, schemaDirectory, debug, recursiveValidator, visitedUrls);
+        const result = await validateNodeDetail(node, nodeIdx, schemaDirectory, debug, recursiveValidator, references);
         jsonSchemaOutputs.push(...result.jsonSchemaOutputs);
         spectralOutputs.push(...result.spectralOutputs);
         if (result.hasErrors) hasErrors = true;
@@ -79,7 +81,7 @@ async function validateNodeDetail(
     schemaDirectory: SchemaDirectory,
     debug: boolean,
     recursiveValidator: ArchitectureValidator,
-    visitedUrls: Set<string>
+    references: CachingTrackingResolver
 ): Promise<NodeDetailResult> {
     const logger = initLogger(debug, 'validate-node-details');
     const detailedArchitecture = node.details?.detailedArchitecture;
@@ -87,15 +89,14 @@ async function validateNodeDetail(
 
     if (!detailedArchitecture || !archUrl) return emptyNodeResult();
 
-    if (visitedUrls.has(archUrl)) {
+    if (references.has(archUrl)) {
         logger.debug(`Cycle detected: skipping already-visited architecture '${archUrl}'`);
         return emptyNodeResult();
     }
-    visitedUrls.add(archUrl);
 
     const detailsPrefix = `/nodes/${nodeIdx}/details/detailed-architecture`;
 
-    const { subArch, error: loadError } = await loadSubArchitecture(detailedArchitecture, detailsPrefix, schemaDirectory);
+    const { subArch, error: loadError } = await loadSubArchitecture(references, archUrl, detailsPrefix);
     if (loadError) return nodeError(loadError);
 
     const pattern = await resolvePattern(node, subArch!, schemaDirectory, logger);
@@ -105,7 +106,7 @@ async function validateNodeDetail(
     const freshDir = schemaDirectory.fork();
 
     const { outcome, error: validationError } = await runRecursiveValidator(
-        subArch!, pattern, freshDir, debug, visitedUrls, recursiveValidator, archUrl, detailsPrefix
+        subArch!, pattern, freshDir, debug, references, recursiveValidator, archUrl, detailsPrefix
     );
     if (validationError) return nodeError(validationError);
 
@@ -113,18 +114,17 @@ async function validateNodeDetail(
 }
 
 /**
- * Load the raw sub-architecture document directly via the SchemaDirectory using the
- * resolvable's reference. Validation needs the raw JSON document (for Spectral + JSON-Schema),
- * so it is loaded through the directory rather than the adapted model.
+ * Load the raw sub-architecture document through the shared {@link CachingTrackingResolver}.
+ * Validation needs the raw JSON document (for Spectral + JSON-Schema), and the resolver both
+ * caches it and records the reference as visited.
  */
 async function loadSubArchitecture(
-    detailedArchitecture: NonNullable<CalmNode['details']>['detailedArchitecture'],
-    detailsPrefix: string,
-    schemaDirectory: SchemaDirectory
+    references: CachingTrackingResolver,
+    archUrl: string,
+    detailsPrefix: string
 ): Promise<{ subArch?: object, error?: ValidationOutput }> {
-    const archUrl = detailedArchitecture!.reference;
     try {
-        const subArch = await schemaDirectory.loadDocument(archUrl, 'architecture');
+        const subArch = await references.resolve(archUrl) as object;
         return { subArch };
     } catch (err) {
         return { error: nodeDetailsError(detailsPrefix, `Could not load detailed-architecture '${archUrl}': ${getErrorMessage(err)}`) };
@@ -171,13 +171,13 @@ async function runRecursiveValidator(
     pattern: object | undefined,
     freshDir: SchemaDirectory,
     debug: boolean,
-    visitedUrls: Set<string>,
+    references: CachingTrackingResolver,
     recursiveValidator: ArchitectureValidator,
     archUrl: string,
     detailsPrefix: string
 ): Promise<{ outcome?: ValidationOutcome, error?: ValidationOutput }> {
     try {
-        return { outcome: await recursiveValidator(subArch, pattern, freshDir, debug, visitedUrls) };
+        return { outcome: await recursiveValidator(subArch, pattern, freshDir, debug, references) };
     } catch (err) {
         return { error: nodeDetailsError(detailsPrefix, `Validation of detailed-architecture '${archUrl}' failed: ${getErrorMessage(err)}`) };
     }

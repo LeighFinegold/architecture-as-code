@@ -1,10 +1,11 @@
 import { ValidationEngine } from './validation-engine';
 import { RuleResult, ValidationContext, ValidationPhase, ValidationRule } from './validation-rule';
+import { CachingTrackingResolver } from '../../resolver/caching-tracking-resolver';
 
 function ctx(overrides: Partial<ValidationContext> = {}): ValidationContext {
     return {
         mode: 'architecture-only',
-        visitedUrls: new Set<string>(),
+        references: new CachingTrackingResolver(() => Promise.reject(new Error('unused'))),
         debug: false,
         // engine is only used by recursive rules; fake rules here don't touch it.
         engine: undefined as unknown as ValidationEngine,
