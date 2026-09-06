@@ -135,6 +135,30 @@ describe('TemplateProcessor E2E', () => {
         expect(actualContent).toEqual(expectedContent); // Compare file contents
     });
 
+    it('should process a bundle whose templates and partials live in nested directories', async () => {
+        const processor = new TemplateProcessor(
+            path.join(DATA_DIR, 'document-system.json'),
+            path.join(FIXTURES_DIR, 'bundles/nested-with-partials'),
+            OUTPUT_DIR,
+            new Map<string, string>()
+        );
+        await processor.processTemplate();
+
+        const actualFile = path.join(OUTPUT_DIR, 'actual-nested-with-partials.txt');
+        // Nested bundle must produce identical output to the equivalent flat bundle.
+        const expectedFile = path.join(
+            EXPECTED_OUTPUT_DIR,
+            'with-partials.txt'
+        );
+
+        expect(fs.existsSync(actualFile)).toBe(true);
+
+        const actualContent = fs.readFileSync(actualFile, 'utf8').trim();
+        const expectedContent = fs.readFileSync(expectedFile, 'utf8').trim();
+
+        expect(actualContent).toEqual(expectedContent);
+    });
+
     it('should process a bundle with repeated output', async () => {
         const processor = new TemplateProcessor(
             path.join(DATA_DIR, 'simple-nodes.json'),
