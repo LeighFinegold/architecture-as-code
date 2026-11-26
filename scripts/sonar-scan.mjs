@@ -101,9 +101,8 @@ function scan() {
     if (sourceOnly) {
         args.push(`-Dsonar.typescript.tsconfigPaths=${sourceOnlyConfig()}`);
     }
-    // Pin the npm scanner without changing CALM's application dependency graph.
     const result = spawnSync('npm', [
-        'exec', '--yes', '--package=@sonar/scan@5.1.0', '--', 'sonar-scanner-npm',
+        'exec', '--', 'sonar-scanner-npm',
         ...args, ...extraArgs.filter(arg => arg !== '--source-only'),
     ], { cwd: root, stdio: 'inherit' });
     if (result.error) {

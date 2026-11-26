@@ -14,7 +14,6 @@
         "build": "tsup",
         "start": "node dist/main.js",
         "test": "vitest run",
-        "test:sonar": "npm test -- --coverage --coverage.reporter=text --coverage.reporter=lcov --coverage.include=\"src/**/*.{ts,tsx,js,jsx,mts,mjs,cts,cjs}\"",
         "lint": "eslint src",
         "lint-fix": "eslint src --fix"
     },
