@@ -124,6 +124,34 @@ There aren't many standards to follow when it comes to Github actions - but some
 
 Currently we have three typescript packages - two of which are managed via `npm workspaces` and one which is just raw `npm`. How these are built and manages slightly differs until they are all under the same worksapce - please look at their related github actions to learn how to build/test each of them.
 
+## Local SonarQube analysis
+
+The monorepo can be analysed as a single SonarQube project using the native Maven and npm builds. The root `sonar-project.properties` defines the production source scope, so duplication between components is visible in the same analysis.
+
+Use JDK 21, the Node version in `.nvmrc`, and a local SonarQube server (Community Build 25.9 was used for the initial audit). Set `SONAR_TOKEN` using a token for that server and run from the repository root on macOS or Linux:
+
+```bash
+npm ci
+export SONAR_HOST_URL=http://127.0.0.1:9000
+npm run sonar
+```
+
+This builds the shared TypeScript dependencies, compiles Hub and the Java models via Maven's opt-in `sonar` profile, exports their compile dependencies and runs SonarScanner from the root-pinned `@sonar/scan` dev dependency (managed in `package-lock.json`). The scanner uses the existing workspace TypeScript configurations.
+
+To generate optional coverage before scanning:
+
+```bash
+npm run sonar:coverage
+./mvnw -B -Psonar -pl calm-models,calm-hub test jacoco:report
+npm run sonar
+```
+
+The npm command runs Vitest with shared coverage arguments across the selected workspaces and writes LCOV. For one workspace, run `npm run test --workspace <name> -- --coverage --coverage.reporter=text --coverage.reporter=lcov --coverage.include="src/**/*.{ts,tsx,js,jsx,mts,mjs,cts,cjs}"`. Maven uses JaCoCo for Java. Hub tests require their normal test infrastructure, including Docker where applicable. Run tests in a clean checkout or clear old coverage reports before analysis to avoid importing stale results. A scan without test reports has incomplete coverage data.
+
+If the TypeScript analyzer runs out of memory, use `npm run sonar -- --source-only` to run source-based JavaScript/TypeScript rules without TypeScript type information, as in the historical audit. For a separate project key, use `npm run sonar -- -Dsonar.projectKey=calm-experiment`. Run `npm run sonar:scan` alone if the Java modules are already compiled with the Sonar profile.
+
+The analysis defaults to a local SonarQube server and uses the standard quality profiles on that instance. The scripts do not modify the application's build or test defaults, publish build artifacts, or create CI workflows.
+
 ## License
 
 Copyright FINOS
