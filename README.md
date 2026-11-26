@@ -136,7 +136,7 @@ export SONAR_HOST_URL=http://127.0.0.1:9000
 npm run sonar
 ```
 
-This builds the shared TypeScript dependencies, compiles Hub and the Java models via Maven's opt-in `sonar` profile, exports their compile dependencies and runs the pinned SonarScanner for npm. The scanner uses the existing workspace TypeScript configurations.
+This builds the shared TypeScript dependencies, compiles Hub and the Java models via Maven's opt-in `sonar` profile, exports their compile dependencies and runs SonarScanner from the root-pinned `@sonar/scan` dev dependency (managed in `package-lock.json`). The scanner uses the existing workspace TypeScript configurations.
 
 To generate optional coverage before scanning:
 
@@ -146,7 +146,7 @@ npm run sonar:coverage
 npm run sonar
 ```
 
-The npm command uses each workspace's Vitest tests and writes LCOV. For an individual workspace, use e.g. `npm run test:sonar --workspace calm-plugins/vscode`. Maven uses JaCoCo for Java. Hub tests require their normal test infrastructure, including Docker where applicable. Run tests in a clean checkout or clear old coverage reports before analysis to avoid importing stale results. A scan without test reports has incomplete coverage data.
+The npm command runs Vitest with shared coverage arguments across the selected workspaces and writes LCOV. For one workspace, run `npm run test --workspace <name> -- --coverage --coverage.reporter=text --coverage.reporter=lcov --coverage.include="src/**/*.{ts,tsx,js,jsx,mts,mjs,cts,cjs}"`. Maven uses JaCoCo for Java. Hub tests require their normal test infrastructure, including Docker where applicable. Run tests in a clean checkout or clear old coverage reports before analysis to avoid importing stale results. A scan without test reports has incomplete coverage data.
 
 If the TypeScript analyzer runs out of memory, use `npm run sonar -- --source-only` to run source-based JavaScript/TypeScript rules without TypeScript type information, as in the historical audit. For a separate project key, use `npm run sonar -- -Dsonar.projectKey=calm-experiment`. Run `npm run sonar:scan` alone if the Java modules are already compiled with the Sonar profile.
 
